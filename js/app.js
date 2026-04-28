@@ -2,6 +2,7 @@
  * ElectEd — Election Process Education App
  * Main application controller with modular architecture.
  */
+'use strict';
 document.addEventListener('DOMContentLoaded', () => {
     // ── HEADER & NAV ──
     const header = document.getElementById('site-header');
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
         mobileToggle.setAttribute('aria-expanded', !expanded);
         mainNav.classList.toggle('open');
+        document.body.classList.toggle('no-scroll', !expanded); // Prevent scrolling when menu open
     });
 
     // Active nav tracking on scroll
@@ -104,11 +106,27 @@ document.addEventListener('DOMContentLoaded', () => {
     initRippleEffect();
     initEnhancedReveals();
     initFAQSearch();
+
+    if (window.VanillaTilt) {
+        VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
+            max: 10,
+            speed: 400,
+            glare: true,
+            "max-glare": 0.2,
+            scale: 1.02
+        });
+    }
 });
 
 // ══════════════════════════════════════
 // TIMELINE MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the interactive election timeline.
+ * Fetches timeline data from the ElectionAPI and renders timeline items.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initTimeline() {
     const wrapper = document.getElementById('timeline-wrapper');
     const filters = document.querySelectorAll('.timeline-filter');
@@ -163,6 +181,12 @@ async function initTimeline() {
 // ══════════════════════════════════════
 // STEPS MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the step-by-step election guide.
+ * Builds navigation tabs and dynamically updates content and progress.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initSteps() {
     const nav = document.getElementById('steps-nav');
     const content = document.getElementById('steps-content');
@@ -236,6 +260,12 @@ async function initSteps() {
 // ══════════════════════════════════════
 // QUIZ MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the interactive quiz module.
+ * Manages quiz state, rendering questions, checking answers, and displaying results.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initQuiz() {
     const startScreen = document.getElementById('quiz-start');
     const activeScreen = document.getElementById('quiz-active');
@@ -363,6 +393,12 @@ async function initQuiz() {
 // ══════════════════════════════════════
 // FAQ MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the FAQ accordion section.
+ * Fetches FAQ data and handles expand/collapse interactions.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initFAQ() {
     const container = document.getElementById('faq-container');
     const res = await ElectionAPI.getFAQs();
@@ -407,13 +443,20 @@ async function initFAQ() {
 // ══════════════════════════════════════
 // CHATBOT MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the AI Chatbot interface.
+ * Handles user input, displays typing indicators, and communicates with the ElectionAPI.
+ * @returns {void}
+ */
 function initChat() {
     const messages = document.getElementById('chat-messages');
     const form = document.getElementById('chat-form');
     const input = document.getElementById('chat-input');
     const suggestions = document.querySelectorAll('.suggestion-chip');
 
-    const addMessage = (text, type) => {
+    const HISTORY_KEY = 'elected_chat_history';
+
+    const addMessage = (text, type, shouldSave = true) => {
         const div = document.createElement('div');
         div.className = `chat-message ${type}`;
         div.innerHTML = `
@@ -422,7 +465,34 @@ function initChat() {
         `;
         messages.appendChild(div);
         messages.scrollTop = messages.scrollHeight;
+
+        if (shouldSave) {
+            const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+            history.push({ text, type });
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        }
         return div;
+    };
+
+    const loadHistory = () => {
+        const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+        if (history.length > 0) {
+            const welcome = document.getElementById('chat-welcome');
+            if (welcome) welcome.remove();
+            history.forEach(msg => addMessage(msg.text, msg.type, false));
+        }
+    };
+
+    const clearHistory = () => {
+        localStorage.removeItem(HISTORY_KEY);
+        messages.innerHTML = `
+            <div class="chat-message bot" id="chat-welcome">
+                <div class="message-avatar" aria-hidden="true">🗳️</div>
+                <div class="message-content">
+                    <p>Chat cleared. How can I help you today?</p>
+                </div>
+            </div>
+        `;
     };
 
     const addTyping = () => {
@@ -472,11 +542,24 @@ function initChat() {
             sendMessage(chip.dataset.question);
         });
     });
+
+    // Load history on start
+    loadHistory();
+
+    // Add clear button listener if it exists
+    const clearBtn = document.getElementById('btn-clear-chat');
+    if (clearBtn) clearBtn.addEventListener('click', clearHistory);
 }
 
 // ══════════════════════════════════════
 // CANDIDATES MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the candidates grid and filtering system.
+ * Fetches candidate data, renders cards, and handles modal interactions.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initCandidates() {
     const grid = document.getElementById('candidates-grid');
     const filterBtns = document.querySelectorAll('.cand-filter');
@@ -596,6 +679,12 @@ async function initCandidates() {
 // ══════════════════════════════════════
 // VOTER REGISTRATION MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the voter registration form and statistics.
+ * Handles form validation, submission to RegistrationAPI, and rendering the voter list.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function initRegistration() {
     const form = document.getElementById('registration-form');
     const stateSelect = document.getElementById('reg-state');
@@ -744,6 +833,11 @@ async function initRegistration() {
 // ══════════════════════════════════════
 // PREMIUM: SPLASH SCREEN
 // ══════════════════════════════════════
+/**
+ * Initializes the splash screen animation.
+ * Automatically hides and removes the splash screen after a delay.
+ * @returns {void}
+ */
 function initSplashScreen() {
     const splash = document.getElementById('splash-screen');
     if (!splash) return;
@@ -756,6 +850,11 @@ function initSplashScreen() {
 // ══════════════════════════════════════
 // PREMIUM: SCROLL PROGRESS BAR
 // ══════════════════════════════════════
+/**
+ * Initializes the scroll progress bar at the top of the page.
+ * Updates the width of the progress bar based on scroll position.
+ * @returns {void}
+ */
 function initScrollProgress() {
     const fill = document.getElementById('scroll-progress-fill');
     if (!fill) return;
@@ -772,6 +871,11 @@ function initScrollProgress() {
 // ══════════════════════════════════════
 // PREMIUM: THEME TOGGLE
 // ══════════════════════════════════════
+/**
+ * Initializes the theme toggle functionality (Light/Dark mode).
+ * Persists user preference in localStorage and applies appropriate data attributes.
+ * @returns {void}
+ */
 function initThemeToggle() {
     const toggle = document.getElementById('theme-toggle');
     const thumb = toggle?.querySelector('.theme-toggle-thumb');
@@ -799,6 +903,11 @@ function initThemeToggle() {
 // ══════════════════════════════════════
 // PREMIUM: BACK TO TOP
 // ══════════════════════════════════════
+/**
+ * Initializes the "Back to Top" button.
+ * Controls visibility based on scroll depth and provides smooth scroll-to-top behavior.
+ * @returns {void}
+ */
 function initBackToTop() {
     const btn = document.getElementById('back-to-top');
     if (!btn) return;
@@ -813,6 +922,11 @@ function initBackToTop() {
 // ══════════════════════════════════════
 // PREMIUM: HERO PARTICLE CANVAS
 // ══════════════════════════════════════
+/**
+ * Initializes the interactive hero particle background.
+ * Uses Canvas API to render particles that react to mouse movement.
+ * @returns {void}
+ */
 function initParticles() {
     const canvas = document.getElementById('hero-particles');
     if (!canvas) return;
@@ -820,6 +934,17 @@ function initParticles() {
     let particles = [];
     let animId;
     let w, h;
+    let mouse = { x: null, y: null, radius: 150 };
+
+    canvas.addEventListener('mousemove', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = event.clientX - rect.left;
+        mouse.y = event.clientY - rect.top;
+    });
+    canvas.addEventListener('mouseleave', () => {
+        mouse.x = null;
+        mouse.y = null;
+    });
 
     const resize = () => {
         const hero = canvas.parentElement;
@@ -829,15 +954,17 @@ function initParticles() {
 
     const createParticles = () => {
         particles = [];
-        const count = Math.min(Math.floor((w * h) / 12000), 80);
+        const count = Math.min(Math.floor((w * h) / 9000), 120);
         for (let i = 0; i < count; i++) {
             particles.push({
                 x: Math.random() * w,
                 y: Math.random() * h,
-                r: Math.random() * 2 + 0.5,
-                dx: (Math.random() - 0.5) * 0.4,
-                dy: (Math.random() - 0.5) * 0.4,
-                alpha: Math.random() * 0.5 + 0.1
+                r: Math.random() * 2.5 + 0.5,
+                dx: (Math.random() - 0.5) * 0.6,
+                dy: (Math.random() - 0.5) * 0.6,
+                baseX: Math.random() * w,
+                baseY: Math.random() * h,
+                alpha: Math.random() * 0.6 + 0.2
             });
         }
     };
@@ -851,6 +978,21 @@ function initParticles() {
             if (p.x > w) p.x = 0;
             if (p.y < 0) p.y = h;
             if (p.y > h) p.y = 0;
+            
+            // Mouse interaction
+            if (mouse.x != null) {
+                let dx = mouse.x - p.x;
+                let dy = mouse.y - p.y;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < mouse.radius) {
+                    const forceDirectionX = dx / distance;
+                    const forceDirectionY = dy / distance;
+                    const force = (mouse.radius - distance) / mouse.radius;
+                    p.x -= forceDirectionX * force * 5;
+                    p.y -= forceDirectionY * force * 5;
+                }
+            }
+
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
             ctx.fillStyle = `rgba(99,102,241,${p.alpha})`;
@@ -863,12 +1005,12 @@ function initParticles() {
                 const dx = particles[i].x - particles[j].x;
                 const dy = particles[i].y - particles[j].y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 120) {
+                if (dist < 140) {
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(99,102,241,${0.08 * (1 - dist / 120)})`;
-                    ctx.lineWidth = 0.5;
+                    ctx.strokeStyle = `rgba(99,102,241,${0.12 * (1 - dist / 140)})`;
+                    ctx.lineWidth = 0.8;
                     ctx.stroke();
                 }
             }
@@ -876,7 +1018,6 @@ function initParticles() {
         animId = requestAnimationFrame(draw);
     };
 
-    // Only animate when hero is visible
     const observer = new IntersectionObserver((entries) => {
         if (entries[0].isIntersecting) {
             if (!animId) draw();
@@ -899,6 +1040,11 @@ function initParticles() {
 // ══════════════════════════════════════
 // PREMIUM: BUTTON RIPPLE EFFECT
 // ══════════════════════════════════════
+/**
+ * Initializes the material-style ripple effect on buttons.
+ * Dynamically creates ripple elements on click.
+ * @returns {void}
+ */
 function initRippleEffect() {
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('.btn, .cand-filter, .timeline-filter');
@@ -918,6 +1064,11 @@ function initRippleEffect() {
 // ══════════════════════════════════════
 // PREMIUM: ENHANCED SCROLL REVEALS
 // ══════════════════════════════════════
+/**
+ * Initializes enhanced scroll reveals for page sections.
+ * Uses IntersectionObserver to trigger animations as elements enter the viewport.
+ * @returns {void}
+ */
 function initEnhancedReveals() {
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(e => {
@@ -948,6 +1099,11 @@ function initEnhancedReveals() {
 // ══════════════════════════════════════
 // PREMIUM: FAQ SEARCH
 // ══════════════════════════════════════
+/**
+ * Initializes the FAQ search filtering logic.
+ * Filters FAQ items in real-time based on user input.
+ * @returns {void}
+ */
 function initFAQSearch() {
     const input = document.getElementById('faq-search-input');
     const noResults = document.getElementById('faq-no-results');
@@ -972,6 +1128,14 @@ function initFAQSearch() {
 // ══════════════════════════════════════
 // PREMIUM: TOAST NOTIFICATIONS
 // ══════════════════════════════════════
+/**
+ * Displays a toast notification to the user.
+ * @param {string} icon - Emoji or icon to display.
+ * @param {string} title - Main title of the toast.
+ * @param {string} message - Description text for the toast.
+ * @param {string} [type='info'] - Type of toast (success, error, info, warning).
+ * @returns {void}
+ */
 function showToast(icon, title, message, type = 'info') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -1001,6 +1165,12 @@ function showToast(icon, title, message, type = 'info') {
 // ══════════════════════════════════════
 // PREMIUM: REGISTRATION PARTY CHART
 // ══════════════════════════════════════
+/**
+ * Renders the voter registration party breakdown chart.
+ * Fetches stats from RegistrationAPI and generates dynamic bar elements.
+ * @async
+ * @returns {Promise<void>}
+ */
 async function renderPartyChart() {
     const chartBars = document.getElementById('reg-chart-bars');
     if (!chartBars) return;
@@ -1041,6 +1211,11 @@ async function renderPartyChart() {
 // ══════════════════════════════════════
 // POLLING BOOTH MAP MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the interactive Leaflet map for polling locations.
+ * Uses lazy-loading via IntersectionObserver and provides search/filter functionality.
+ * @returns {void}
+ */
 function initPollingMap() {
     const mapEl = document.getElementById('polling-map');
     if (!mapEl || typeof L === 'undefined') return;
@@ -1125,16 +1300,21 @@ function initPollingMap() {
         });
     }
 
-    // Create custom colored marker icon
+    // Create custom colored marker icon (SVG Pin for professional look)
     function createMarkerIcon(status) {
         const colors = { open: '#10b981', limited: '#f59e0b', closed: '#ef4444' };
         const color = colors[status] || '#6b7280';
         return L.divIcon({
             className: 'custom-poll-marker',
-            html: '<div style="width:14px;height:14px;border-radius:50%;background:' + color + ';border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,0.4);"></div>',
-            iconSize: [14, 14],
-            iconAnchor: [7, 7],
-            popupAnchor: [0, -10]
+            html: `
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" fill="${color}" stroke="#fff" stroke-width="2"/>
+                    <circle cx="12" cy="9" r="3" fill="#fff"/>
+                </svg>
+            `,
+            iconSize: [32, 32],
+            iconAnchor: [16, 32],
+            popupAnchor: [0, -32]
         });
     }
 
@@ -1218,6 +1398,11 @@ function initPollingMap() {
 // ══════════════════════════════════════
 // ELECTORAL COLLEGE MAP MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the interactive Electoral College map.
+ * Fetches GeoJSON data and provides state-level data visualization.
+ * @returns {void}
+ */
 function initElectoralMap() {
     const mapEl = document.getElementById('electoral-leaflet-map');
     if (!mapEl || typeof L === 'undefined') return;
@@ -1284,6 +1469,12 @@ function initElectoralMap() {
                                 fillOpacity: 0.6,
                                 fillColor: '#6366f1'
                             });
+                            // Simple tooltip
+                            l.bindTooltip(`<strong>${feature.properties.name}</strong>`, { 
+                                sticky: true, 
+                                direction: 'top', 
+                                className: 'map-tooltip' 
+                            }).openTooltip();
                         },
                         mouseout: (e) => {
                             geoJsonLayer.resetStyle(e.target);
@@ -1303,7 +1494,13 @@ function initElectoralMap() {
         }
     }
 
-    async function showStateInfo(stateName) {
+    /**
+ * Displays detailed information for a selected state in the electoral map.
+ * @async
+ * @param {string|null} stateName - Name of the state to display.
+ * @returns {Promise<void>}
+ */
+async function showStateInfo(stateName) {
         const placeholder = document.getElementById('map-info-placeholder');
         const content = document.getElementById('state-info-content');
         const nameEl = document.getElementById('state-name');
@@ -1342,4 +1539,220 @@ function initElectoralMap() {
             `).join('');
         }
     }
+
+    /**
+     * Initializes the Registration Verification feature.
+     */
+    function initVerification() {
+        const verifyForm = document.getElementById('verify-form');
+        const verifyResult = document.getElementById('verify-result');
+        if (!verifyForm) return;
+
+        verifyForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('verify-email').value.toLowerCase().trim();
+            if (!email) return;
+
+            verifyResult.innerHTML = '<span style="color:var(--text-muted)">Checking database...</span>';
+            
+            // Artificial delay for realism
+            await new Promise(r => setTimeout(r, 600));
+
+            const res = await RegistrationAPI.getRegisteredVoters();
+            const voter = res.data.find(v => v.email === email);
+            
+            if (voter) {
+                verifyResult.innerHTML = `<div style="padding:10px; background:rgba(34,197,94,0.1); border-radius:8px; border:1px solid rgba(34,197,94,0.2);"><span style="color:var(--success); font-weight:600;">✅ Verified:</span> <span style="color:var(--text-primary)">${voter.fullName} registered in ${voter.state} (${voter.partyAffiliation})</span></div>`;
+            } else {
+                verifyResult.innerHTML = `<div style="padding:10px; background:rgba(239,68,68,0.1); border-radius:8px; border:1px solid rgba(239,68,68,0.2);"><span style="color:var(--error); font-weight:600;">❌ Not Found:</span> <span style="color:var(--text-primary)">No record matches this email address.</span></div>`;
+            }
+        });
+    }
+
+    /**
+     * Enhances clickability between timeline and steps.
+     */
+    function initInterLink() {
+        const timelineItems = document.querySelectorAll('.timeline-item');
+        timelineItems.forEach(item => {
+            item.style.cursor = 'pointer';
+            item.addEventListener('click', () => {
+                const title = item.querySelector('h3').textContent;
+                // Find matching step
+                const steps = document.querySelectorAll('.step-card');
+                for (let s of steps) {
+                    if (s.querySelector('h3').textContent.includes(title) || title.includes(s.querySelector('h3').textContent)) {
+                        s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        s.classList.add('highlight-pulse');
+                        setTimeout(() => s.classList.remove('highlight-pulse'), 2000);
+                        break;
+                    }
+                }
+            });
+        });
+    }
+
+    /**
+     * Initializes the social sharing feature.
+     */
+    function initSharing() {
+        const shareBtn = document.getElementById('btn-share-hero');
+        if (!shareBtn) return;
+
+        shareBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'ElectEd — Interactive Election Assistant',
+                    text: 'Master the U.S. election process with this interactive AI toolkit!',
+                    url: window.location.href
+                }).catch(() => {
+                    copyToClipboard();
+                });
+            } else {
+                copyToClipboard();
+            }
+        });
+
+        function copyToClipboard() {
+            navigator.clipboard.writeText(window.location.href);
+            if (typeof showToast === 'function') {
+                showToast("Link copied to clipboard!", "success");
+            }
+        }
+    }
+
+    /**
+     * Initializes the real-time election countdown.
+     */
+    function initCountdown() {
+        const target = new Date("November 3, 2026 00:00:00").getTime();
+        const update = () => {
+            const now = new Date().getTime();
+            const diff = target - now;
+            if (diff <= 0) return;
+            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
+            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const s = Math.floor((diff % (1000 * 60)) / 1000);
+            
+            const daysEl = document.getElementById('days');
+            const hoursEl = document.getElementById('hours');
+            const minsEl = document.getElementById('minutes');
+            const secsEl = document.getElementById('seconds');
+            
+            if (daysEl) daysEl.textContent = d.toString().padStart(2, '0');
+            if (hoursEl) hoursEl.textContent = h.toString().padStart(2, '0');
+            if (minsEl) minsEl.textContent = m.toString().padStart(2, '0');
+            if (secsEl) secsEl.textContent = s.toString().padStart(2, '0');
+        };
+        setInterval(update, 1000);
+        update();
+    }
+
+    /**
+     * Initializes Voice Recognition for the chatbot.
+     */
+    function initVoice() {
+        const voiceBtn = document.getElementById('btn-voice-chat');
+        const input = document.getElementById('chat-input');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!voiceBtn || !SpeechRecognition) {
+            if (voiceBtn) voiceBtn.style.display = 'none';
+            return;
+        }
+
+        const recognition = new SpeechRecognition();
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.lang = 'en-US';
+
+        voiceBtn.addEventListener('click', () => {
+            if (voiceBtn.classList.contains('listening')) {
+                recognition.stop();
+                return;
+            }
+            voiceBtn.classList.add('listening');
+            recognition.start();
+        });
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            input.value = transcript;
+            voiceBtn.classList.remove('listening');
+            const chatForm = document.getElementById('chat-form');
+            if (chatForm) chatForm.dispatchEvent(new Event('submit'));
+        };
+
+        recognition.onerror = () => voiceBtn.classList.remove('listening');
+        recognition.onend = () => voiceBtn.classList.remove('listening');
+    }
+
+    /**
+     * Initializes scroll-based reveal animations.
+     */
+    function initScrollReveal() {
+        const reveal = () => {
+            const items = document.querySelectorAll('.section, .overview-card, .step-card, .candidate-card, .timeline-item, .reg-stat-card');
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const isVisible = rect.top < window.innerHeight * 0.9;
+                if (isVisible) {
+                    item.classList.add('reveal-visible');
+                }
+            });
+        };
+        window.addEventListener('scroll', reveal);
+        setTimeout(reveal, 500); // Trigger once after load
+    }
+
+    /**
+     * Initializes the custom magnetic cursor for desktop users.
+     */
+    function initCursor() {
+        if (typeof L !== 'undefined' && L.Browser.mobile) return;
+        const dot = document.getElementById('cursor-dot');
+        const outline = document.getElementById('cursor-outline');
+        if (!dot || !outline) return;
+        
+        window.addEventListener('mousemove', (e) => {
+            const posX = e.clientX;
+            const posY = e.clientY;
+            
+            dot.style.transform = `translate(${posX}px, ${posY}px)`;
+            
+            // Smoother outline tracking
+            outline.animate({
+                transform: `translate(${posX}px, ${posY}px)`
+            }, { duration: 400, fill: 'forwards' });
+        });
+
+        const interactives = document.querySelectorAll('a, button, .overview-card, .step-card, .candidate-card, .suggestion-chip, .faq-question-btn');
+        interactives.forEach(el => {
+            el.addEventListener('mouseenter', () => outline.classList.add('cursor-hover'));
+            el.addEventListener('mouseleave', () => outline.classList.remove('cursor-hover'));
+        });
+    }
+
+    initVerification();
+    initInterLink();
+    initSharing();
+    initCountdown();
+    initVoice();
+    initScrollReveal();
+    initCursor();
+
+    // Initial Fun Fact Toast
+    setTimeout(() => {
+        const facts = [
+            "George Washington is the only president to be elected unanimously.",
+            "Victoria Woodhull was the first woman to run for president, back in 1872.",
+            "The 24th Amendment made poll taxes illegal in federal elections.",
+            "In 1920, the 19th Amendment granted women the right to vote."
+        ];
+        const randomFact = facts[Math.floor(Math.random() * facts.length)];
+        if (typeof showToast === 'function') {
+            showToast(randomFact, "info");
+        }
+    }, 2500);
 }
