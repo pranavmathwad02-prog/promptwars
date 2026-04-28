@@ -70,51 +70,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
     document.querySelectorAll('.overview-card, .section-header').forEach(el => { el.classList.add('reveal'); revealObs.observe(el); });
 
-    // ── TIMELINE ──
-    initTimeline();
+    try {
+        // ── PREMIUM ENHANCEMENTS ──
+        initSplashScreen();
+        initScrollProgress();
+        initThemeToggle();
+        initBackToTop();
+        initParticles();
+        initRippleEffect();
+        initEnhancedReveals();
+        initFAQSearch();
 
-    // ── STEPS ──
-    initSteps();
+        // ── CORE MODULES ──
+        initTimeline().catch(e => console.warn("Timeline failed:", e));
+        initSteps().catch(e => console.warn("Steps failed:", e));
+        initQuiz().catch(e => console.warn("Quiz failed:", e));
+        initFAQ().catch(e => console.warn("FAQ failed:", e));
+        initChat().catch(e => console.warn("Chat failed:", e));
+        initCandidates().catch(e => console.warn("Candidates failed:", e));
+        initRegistration().catch(e => console.warn("Registration failed:", e));
+        initPollingMap().catch(e => console.warn("Polling Map failed:", e));
+        initElectoralMap().catch(e => console.warn("Electoral Map failed:", e));
 
-    // ── QUIZ ──
-    initQuiz();
-
-    // ── FAQ ──
-    initFAQ();
-
-    // ── CHATBOT ──
-    initChat();
-
-    // ── CANDIDATES ──
-    initCandidates();
-
-    // ── VOTER REGISTRATION ──
-    initRegistration();
-
-    // ── POLLING BOOTH MAP ──
-    initPollingMap();
-
-    // ── ELECTORAL COLLEGE MAP ──
-    initElectoralMap();
-
-    // ── PREMIUM ENHANCEMENTS ──
-    initSplashScreen();
-    initScrollProgress();
-    initThemeToggle();
-    initBackToTop();
-    initParticles();
-    initRippleEffect();
-    initEnhancedReveals();
-    initFAQSearch();
-
-    if (window.VanillaTilt) {
-        VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
-            max: 10,
-            speed: 400,
-            glare: true,
-            "max-glare": 0.2,
-            scale: 1.02
-        });
+        if (window.VanillaTilt) {
+            VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
+                max: 10,
+                speed: 400,
+                glare: true,
+                "max-glare": 0.2,
+                scale: 1.02
+            });
+        }
+    } catch (globalError) {
+        console.error("Critical Platform Error:", globalError);
+        // Emergency splash removal
+        const splash = document.getElementById('splash-screen');
+        if (splash) {
+            splash.style.opacity = '0';
+            setTimeout(() => splash.remove(), 600);
+        }
     }
 });
 
