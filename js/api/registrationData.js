@@ -2,6 +2,7 @@
  * Data Persistence & Registration API Module
  * Handles voter registration, candidate data, and localStorage persistence.
  */
+'use strict';
 const RegistrationAPI = (() => {
     const STORAGE_KEYS = {
         voters: 'elected_registered_voters',
@@ -70,16 +71,20 @@ const RegistrationAPI = (() => {
 
     return {
         // ── VOTER REGISTRATION ──
+        /**
+         * Registers a new voter in the system.
+         * Communicates with the backend API or falls back to validation.
+         * @async
+         * @param {Object} voterData - The voter's information.
+         * @returns {Promise<{success: boolean, data: Object}|{success: boolean, error: string}>}
+         */
         async registerVoter(voterData) {
-            await _delay(300);
             const { fullName, email, state, dob, partyAffiliation } = voterData;
-            // Validation
             if (!fullName || fullName.trim().length < 2) return { success: false, error: "Full name is required (min 2 characters)." };
             if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return { success: false, error: "A valid email address is required." };
             if (!state) return { success: false, error: "Please select your state." };
             if (!dob) return { success: false, error: "Date of birth is required." };
 
-            // Age check (must be 18+)
             const birthDate = new Date(dob);
             const today = new Date();
             let age = today.getFullYear() - birthDate.getFullYear();
@@ -87,37 +92,56 @@ const RegistrationAPI = (() => {
             if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) age--;
             if (age < 18) return { success: false, error: "You must be at least 18 years old to register." };
 
-            // Check duplicate
-            const voters = _get(STORAGE_KEYS.voters);
-            if (voters.find(v => v.email.toLowerCase() === email.toLowerCase())) {
-                return { success: false, error: "This email is already registered." };
-            }
-
-            const voter = {
-                id: Date.now(),
+            const payload = {
                 fullName: fullName.trim(),
                 email: email.trim().toLowerCase(),
                 state,
                 dob,
                 age,
                 partyAffiliation: partyAffiliation || "Unaffiliated",
-                registeredAt: new Date().toISOString(),
-                status: "Active"
+                registeredAt: new Date().toISOString()
             };
-            voters.push(voter);
-            _set(STORAGE_KEYS.voters, voters);
-            return { success: true, data: voter, message: "Registration successful! You are now registered to vote." };
+
+            try {
+                const res = await fetch('/api/voters', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (!res.ok || !data.success) throw new Error(data.error || 'Failed to register.');
+                return data;
+            } catch (err) {
+                return { success: false, error: err.message };
+            }
         },
 
+        /**
+         * Fetches the list of all registered voters.
+         * @async
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async getRegisteredVoters() {
-            await _delay(100);
-            const voters = _get(STORAGE_KEYS.voters);
-            return { success: true, data: voters, count: voters.length };
+            try {
+                const res = await fetch('/api/voters');
+                const data = await res.json();
+                return data;
+            } catch (err) {
+                // Fallback to localStorage if server is down
+                const voters = _get(STORAGE_KEYS.voters);
+                return { success: true, data: voters, count: voters.length };
+            }
         },
 
+        /**
+         * Calculates registration statistics by party and state.
+         * @async
+         * @returns {Promise<{success: boolean, data: Object}>}
+         */
         async getRegistrationStats() {
-            await _delay(50);
-            const voters = _get(STORAGE_KEYS.voters);
+            const res = await this.getRegisteredVoters();
+            if (!res.success) return { success: false };
+            const voters = res.data;
             const byParty = {};
             const byState = {};
             voters.forEach(v => {
@@ -127,15 +151,32 @@ const RegistrationAPI = (() => {
             return { success: true, data: { total: voters.length, byParty, byState } };
         },
 
+        /**
+         * Deletes a voter registration by ID.
+         * @async
+         * @param {number} id - The voter ID to delete.
+         * @returns {Promise<{success: boolean, message: string}>}
+         */
         async deleteVoter(id) {
-            await _delay(100);
-            let voters = _get(STORAGE_KEYS.voters);
-            voters = voters.filter(v => v.id !== id);
-            _set(STORAGE_KEYS.voters, voters);
-            return { success: true, message: "Voter registration removed." };
+            try {
+                const res = await fetch(`/api/voters/${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                return data;
+            } catch (err) {
+                let voters = _get(STORAGE_KEYS.voters);
+                voters = voters.filter(v => v.id !== id);
+                _set(STORAGE_KEYS.voters, voters);
+                return { success: true, message: "Voter registration removed." };
+            }
         },
 
         // ── CANDIDATES ──
+        /**
+         * Fetches a list of election candidates with optional filtering.
+         * @async
+         * @param {Object} [filter={}] - Filtering criteria (party, position).
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async getCandidates(filter = {}) {
             await _delay(150);
             let result = [...candidates];
@@ -144,6 +185,12 @@ const RegistrationAPI = (() => {
             return { success: true, data: result, count: result.length };
         },
 
+        /**
+         * Fetches a specific candidate by ID.
+         * @async
+         * @param {number} id - The candidate ID.
+         * @returns {Promise<{success: boolean, data: Object}|{success: boolean, error: string}>}
+         */
         async getCandidateById(id) {
             await _delay(100);
             const c = candidates.find(c => c.id === id);
@@ -151,6 +198,13 @@ const RegistrationAPI = (() => {
         },
 
         // ── QUIZ SCORE PERSISTENCE ──
+        /**
+         * Persists a quiz score in localStorage.
+         * @async
+         * @param {number} score - The number of correct answers.
+         * @param {number} total - The total number of questions.
+         * @returns {Promise<{success: boolean, data: Object}>}
+         */
         async saveQuizScore(score, total) {
             await _delay(50);
             const scores = _get(STORAGE_KEYS.quizScores);
@@ -160,6 +214,11 @@ const RegistrationAPI = (() => {
             return { success: true, data: entry };
         },
 
+        /**
+         * Fetches the user's quiz history from localStorage.
+         * @async
+         * @returns {Promise<{success: boolean, data: Array, count: number, bestScore: number}>}
+         */
         async getQuizHistory() {
             await _delay(50);
             const scores = _get(STORAGE_KEYS.quizScores);
@@ -167,6 +226,13 @@ const RegistrationAPI = (() => {
         },
 
         // ── USER PREFERENCES ──
+        /**
+         * Saves a user preference to localStorage.
+         * @async
+         * @param {string} key - The preference key.
+         * @param {string} value - The preference value.
+         * @returns {Promise<{success: boolean}>}
+         */
         async savePreference(key, value) {
             const prefs = _getObj(STORAGE_KEYS.userPrefs);
             prefs[key] = value;
@@ -174,16 +240,31 @@ const RegistrationAPI = (() => {
             return { success: true };
         },
 
+        /**
+         * Fetches all user preferences from localStorage.
+         * @async
+         * @returns {Promise<{success: boolean, data: Object}>}
+         */
         async getPreferences() {
             return { success: true, data: _getObj(STORAGE_KEYS.userPrefs) };
         },
 
         // ── US STATES LIST ──
+        /**
+         * Returns a list of all U.S. states.
+         * @returns {string[]}
+         */
         getStates() {
             return ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming","District of Columbia"];
         },
 
         // ── POLLING BOOTHS ──
+        /**
+         * Fetches a list of polling booths with optional searching and state filtering.
+         * @async
+         * @param {Object} [filter={}] - Filtering criteria (search, state).
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async getPollingBooths(filter = {}) {
             await _delay(100);
             const booths = [

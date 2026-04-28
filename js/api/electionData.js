@@ -3,6 +3,7 @@
  * Simulates a backend REST API with comprehensive election process data.
  * All data endpoints return Promises to mimic async API calls.
  */
+'use strict';
 const ElectionAPI = (() => {
     // Simulate network latency
     const _delay = (ms = 200) => new Promise(r => setTimeout(r, ms));
@@ -418,24 +419,53 @@ Keep responses concise (2-4 sentences), informative, and non-partisan.`;
 
     // ── API METHODS ──
     return {
+        /**
+         * Fetches the list of election steps.
+         * @async
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async getSteps() {
             await _delay(150);
             return { success: true, data: steps, count: steps.length };
         },
+        /**
+         * Fetches a specific election step by ID.
+         * @async
+         * @param {number} id - The step ID.
+         * @returns {Promise<{success: boolean, data: Object}|{success: boolean, error: string}>}
+         */
         async getStepById(id) {
             await _delay(100);
             const step = steps.find(s => s.id === id);
             return step ? { success: true, data: step } : { success: false, error: "Step not found" };
         },
+        /**
+         * Fetches the timeline data for a given election type.
+         * @async
+         * @param {string} [type="presidential"] - The election type ("presidential" or "midterm").
+         * @returns {Promise<{success: boolean, data: Array, type: string}>}
+         */
         async getTimeline(type = "presidential") {
             await _delay(150);
             const data = type === "midterm" ? midtermTimeline : presidentialTimeline;
             return { success: true, data, type };
         },
+        /**
+         * Fetches the list of quiz questions.
+         * @async
+         * @returns {Promise<{success: boolean, data: Array, total: number}>}
+         */
         async getQuizQuestions() {
             await _delay(100);
             return { success: true, data: quizQuestions, total: quizQuestions.length };
         },
+        /**
+         * Checks the answer for a quiz question.
+         * @async
+         * @param {number} questionId - The ID of the question.
+         * @param {number} answerIndex - The index of the user's selected answer.
+         * @returns {Promise<{success: boolean, correct: boolean, explanation: string, correctIndex: number}>}
+         */
         async checkAnswer(questionId, answerIndex) {
             await _delay(80);
             const q = quizQuestions.find(qu => qu.id === questionId);
@@ -443,10 +473,21 @@ Keep responses concise (2-4 sentences), informative, and non-partisan.`;
             const correct = q.correct === answerIndex;
             return { success: true, correct, explanation: q.explanation, correctIndex: q.correct };
         },
+        /**
+         * Fetches the list of FAQs.
+         * @async
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async getFAQs() {
             await _delay(100);
             return { success: true, data: faqs, count: faqs.length };
         },
+        /**
+         * Searches for FAQs matching a query.
+         * @async
+         * @param {string} query - The search query.
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async searchFAQ(query) {
             await _delay(100);
             const lower = query.toLowerCase();
@@ -480,6 +521,11 @@ Keep responses concise (2-4 sentences), informative, and non-partisan.`;
             await _delay(300 + Math.random() * 400);
             return { success: true, response: _localChatFallback(message), source: 'local' };
         },
+        /**
+         * Fetches general platform statistics.
+         * @async
+         * @returns {Promise<{success: boolean, data: Object}>}
+         */
         async getStats() {
             await _delay(50);
             return {
@@ -493,6 +539,12 @@ Keep responses concise (2-4 sentences), informative, and non-partisan.`;
                 }
             };
         },
+        /**
+         * Fetches electoral data for a specific state.
+         * @async
+         * @param {string} stateName - The name of the state.
+         * @returns {Promise<{success: boolean, data: Object}>}
+         */
         async getStateElectoralData(stateName) {
             await _delay(50);
             const data = {
