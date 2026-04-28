@@ -1164,11 +1164,13 @@ function initPollingMap() {
         // Add markers
         booths.forEach(b => {
             const marker = L.marker([b.lat, b.lng], { icon: createMarkerIcon(b.status) }).addTo(map);
+            const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${b.name} ${b.address} ${b.city} ${b.state}`)}`;
             const popupContent = '<div class="poll-popup-name">' + b.name + '</div>' +
                 '<div class="poll-popup-address">' + b.address + ', ' + b.city + ', ' + b.state + '</div>' +
                 '<div class="poll-popup-hours">\ud83d\udd52 ' + b.hours + '</div>' +
                 '<span class="poll-popup-status ' + b.status + '">' + b.status + '</span>' +
-                (b.accessible ? ' <span style="font-size:0.75rem;color:var(--text-dim);">\u267f Accessible</span>' : '');
+                (b.accessible ? ' <span style="font-size:0.75rem;color:var(--text-dim);">\u267f Accessible</span>' : '') +
+                '<div style="margin-top:10px;"><a href="' + gMapsUrl + '" target="_blank" style="color:var(--accent-primary);font-size:0.8rem;font-weight:600;display:inline-flex;align-items:center;gap:4px;">\ud83d\uddfa\ufe0f Open in Google Maps</a></div>';
             marker.bindPopup(popupContent, { maxWidth: 280 });
             marker._boothId = b.id;
             markers.push(marker);
@@ -1236,14 +1238,28 @@ function initElectoralMap() {
         map = L.map('electoral-leaflet-map', {
             center: [37.8, -96],
             zoom: 4,
-            zoomControl: false,
+            zoomControl: true,
             dragging: !L.Browser.mobile,
             scrollWheelZoom: false
         });
 
+        // Add a reset view button
+        const resetControl = L.control({position: 'topleft'});
+        resetControl.onAdd = function () {
+            const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+            div.innerHTML = '<a href="#" title="Reset View" style="font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;padding:4px;">🏠</a>';
+            div.onclick = function(e) {
+                e.preventDefault();
+                map.setView([37.8, -96], 4);
+                showStateInfo(null);
+            };
+            return div;
+        };
+        resetControl.addTo(map);
+
         // Use a clearer base layer
         const tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        L.tileLayer(tileUrl, { maxZoom: 19, opacity: 0.5 }).addTo(map);
+        L.tileLayer(tileUrl, { maxZoom: 19, opacity: 0.8 }).addTo(map);
 
         try {
             // Fetch US States GeoJSON
@@ -1304,6 +1320,14 @@ function initElectoralMap() {
 
         nameEl.textContent = stateName || "State Information";
         
+        if (!stateName) {
+            evEl.textContent = `0 Electoral Votes`;
+            deadlineEl.textContent = "-";
+            idReqEl.textContent = "-";
+            rulesEl.innerHTML = "";
+            return;
+        }
+
         const res = await ElectionAPI.getStateElectoralData(stateName);
         if (res.success) {
             const data = res.data;
