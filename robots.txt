@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://elected-demo.web.app/sitemap.xml

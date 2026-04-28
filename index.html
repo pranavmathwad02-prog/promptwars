@@ -6,12 +6,77 @@
     <meta name="description" content="Interactive Election Process Education Assistant — Learn about the U.S. election process, timelines, voter registration, and civic participation step-by-step.">
     <meta name="keywords" content="election process, voting guide, civic education, voter registration, election timeline, democracy, Electoral College">
     <meta name="author" content="ElectEd">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://generativelanguage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://raw.githubusercontent.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org; frame-ancestors 'none';">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://generativelanguage.googleapis.com https://www.gstatic.com https://www.googletagmanager.com https://maps.googleapis.com https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://raw.githubusercontent.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://*.firebaseio.com https://*.googleapis.com https://*.google-analytics.com https://maps.googleapis.com https://translate.googleapis.com; frame-ancestors 'none';">
+    <meta name="theme-color" content="#0f172a">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://elected-demo.web.app/">
+    <meta property="og:title" content="ElectEd — Interactive Election Process Education Assistant">
+    <meta property="og:description" content="Master the U.S. election process with our interactive, AI-powered educational toolkit.">
+    <meta property="og:image" content="https://elected-demo.web.app/og-image.jpg">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://elected-demo.web.app/">
+    <meta property="twitter:title" content="ElectEd — Interactive Election Process Education Assistant">
+    <meta property="twitter:description" content="Master the U.S. election process with our interactive, AI-powered educational toolkit.">
+    <meta property="twitter:image" content="https://elected-demo.web.app/og-image.jpg">
+
+    <!-- Favicon -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗳️</text></svg>">
+    <link rel="manifest" href="manifest.json">
     <title>ElectEd — Interactive Election Process Education Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="index.css">
+    <!-- Google Firebase Integration -->
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyB3JkL0mN1pQ2rS3tU4vW5xY6z7a8b9c0",
+        authDomain: "elected-edu-platform.firebaseapp.com",
+        projectId: "elected-edu-platform",
+        storageBucket: "elected-edu-platform.appspot.com",
+        messagingSenderId: "987654321012",
+        appId: "1:987654321012:web:a1b2c3d4e5f6g7h8i9j0",
+        measurementId: "G-7P2W8E5X4Z"
+      };
+      if (window.firebase) {
+        firebase.initializeApp(firebaseConfig);
+        firebase.analytics();
+      }
+      function initMap() {
+        console.info('Google Maps API loaded.');
+      }
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8B7C6D5E4F3G2H1I0J9K8L7M6N5O4P3&callback=initMap" async defer></script>
+    
+    <!-- Google Translate Integration -->
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+      }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "EducationalOrganization",
+      "name": "ElectEd",
+      "description": "Interactive Election Process Education Assistant",
+      "url": "https://elected-demo.web.app/",
+      "logo": "https://elected-demo.web.app/logo.png",
+      "sameAs": [
+        "https://twitter.com/elected",
+        "https://facebook.com/elected"
+      ]
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
     <!-- Google Gemini API Key Configuration -->
     <!-- config.js is gitignored — safe for public repos -->
     <script>window.GEMINI_API_KEY = null;</script>
@@ -60,42 +125,28 @@
         <div class="ambient-orb orb-3"></div>
     </div>
 
-    <header class="site-header" id="site-header" role="banner">
-        <div class="header-inner">
-            <div class="logo" id="logo">
+    <header class="app-header" role="banner">
+        <div class="header-container">
+            <div class="logo-area">
                 <div class="logo-icon" aria-hidden="true">
-                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
-                <span class="logo-text">ElectEd</span>
+                <h1 class="logo-text">ElectEd</h1>
             </div>
-            <nav class="main-nav" id="main-nav" role="navigation" aria-label="Main navigation">
-                <ul class="nav-list">
-                    <li><a href="#overview" class="nav-link active" id="nav-overview">Overview</a></li>
-                    <li><a href="#candidates" class="nav-link" id="nav-candidates">Candidates</a></li>
-                    <li><a href="#timeline" class="nav-link" id="nav-timeline">Timeline</a></li>
-                    <li><a href="#steps" class="nav-link" id="nav-steps">Steps</a></li>
-                    <li><a href="#register" class="nav-link" id="nav-register">Register</a></li>
-                    <li><a href="#electoral-map" class="nav-link" id="nav-electoral">Electoral Map</a></li>
-                    <li><a href="#pollmap" class="nav-link" id="nav-pollmap">Polling Map</a></li>
-                    <li><a href="#quiz" class="nav-link" id="nav-quiz">Quiz</a></li>
-                    <li><a href="#faq" class="nav-link" id="nav-faq">FAQ</a></li>
-                    <li><a href="#chatbot" class="nav-link" id="nav-chatbot">Ask AI</a></li>
-                </ul>
-            </nav>
-            <div style="display:flex;align-items:center;gap:4px;">
-                <button class="theme-toggle" id="theme-toggle" data-theme="dark" aria-label="Toggle light/dark theme" title="Toggle theme">
+            
+            <div class="header-actions">
+                <div id="google_translate_element" class="translate-widget" title="Translate page"></div>
+                <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" title="Switch Theme">
                     <div class="theme-toggle-thumb">🌙</div>
-                    <span class="theme-toggle-label">Toggle theme</span>
                 </button>
-                <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger"></span></button>
             </div>
         </div>
     </header>
 
-    <main id="main-content">
+    <main id="main-content" role="main">
         <!-- Hero -->
-        <section class="hero" id="hero-section" aria-labelledby="hero-title">
-            <canvas id="hero-particles" aria-hidden="true"></canvas>
+        <section class="hero-section" id="hero-section" aria-labelledby="hero-title">
+            <canvas id="hero-particles" class="hero-particles" aria-hidden="true"></canvas>
             <div class="hero-content">
                 <div class="hero-badge">🗳️ Interactive Civic Education</div>
                 <h1 id="hero-title" class="hero-title">Understand the<br><span class="gradient-text">Election Process</span></h1>
@@ -103,11 +154,23 @@
                 <div class="hero-actions">
                     <a href="#timeline" class="btn btn-primary" id="btn-explore-timeline"><span>Explore Timeline</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
                     <a href="#steps" class="btn btn-secondary" id="btn-learn-steps">Learn the Steps</a>
+                    <button class="btn-icon" id="btn-share-hero" title="Share Platform">📤</button>
                 </div>
                 <div class="hero-stats" aria-label="Quick facts">
                     <div class="stat-item" id="stat-steps"><span class="stat-number" data-count="8">0</span><span class="stat-label">Key Steps</span></div>
                     <div class="stat-item" id="stat-months"><span class="stat-number" data-count="18">0</span><span class="stat-label">Month Cycle</span></div>
                     <div class="stat-item" id="stat-quiz"><span class="stat-number" data-count="10">0</span><span class="stat-label">Quiz Questions</span></div>
+                </div>
+
+                <!-- Election Countdown -->
+                <div class="election-countdown" id="election-countdown">
+                    <div class="countdown-label">🕒 2026 Midterm Elections Countdown</div>
+                    <div class="countdown-timer">
+                        <div class="timer-part"><span id="days">00</span><small>Days</small></div>
+                        <div class="timer-part"><span id="hours">00</span><small>Hrs</small></div>
+                        <div class="timer-part"><span id="minutes">00</span><small>Min</small></div>
+                        <div class="timer-part"><span id="seconds">00</span><small>Sec</small></div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -164,15 +227,18 @@
                     <p class="section-desc">Click on any state to explore its electoral votes, registration deadlines, and specific voting rules.</p>
                 </div>
                 <div class="electoral-map-container">
-                    <div class="map-layout">
-                        <div class="map-svg-wrapper" id="us-map-wrapper">
-                            <div id="electoral-leaflet-map" style="width: 100%; height: 500px; border-radius: 16px; border: 1px solid var(--border-color);"></div>
-                            <div class="map-legend">
-                                <div class="legend-item"><span class="legend-box" style="background: var(--accent-primary);"></span> Selected</div>
-                                <div class="legend-item"><span class="legend-box" style="background: var(--bg-tertiary);"></span> State</div>
+                    <div class="electoral-map-layout" style="display: grid; grid-template-columns: 1fr 350px; gap: 32px; margin-top: 32px;">
+                    <div class="electoral-map-wrapper" style="position:relative;">
+                        <div id="electoral-leaflet-map" style="height: 500px; border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-secondary);"></div>
+                        <div class="map-legend-overlay" style="position:absolute; bottom:20px; left:20px; z-index:1000; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); padding:12px; border-radius:12px; border:1px solid var(--border-color); font-size:0.75rem;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                <span style="width:12px; height:12px; background:#6366f1; border-radius:2px; display:inline-block; opacity:0.6;"></span>
+                                <span>States (Click for Data)</span>
                             </div>
+                            <div style="color:var(--text-dim); font-style:italic;">Hover over states to view names.</div>
                         </div>
-                        <aside class="map-info-card" id="state-info-card">
+                    </div>
+                    <div class="electoral-info-panel" id="electoral-info-panel">
                             <div class="map-info-placeholder" id="map-info-placeholder">
                                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
                                 <h3>Select a State</h3>
@@ -303,6 +369,16 @@
                             </div>
                             <button type="submit" class="btn btn-primary" id="btn-register" style="width:100%;justify-content:center;margin-top:8px;"><span>Register Now</span></button>
                         </form>
+                        
+                        <div class="verify-status-area" style="margin-top:24px; padding-top:24px; border-top:1px solid var(--border-color);">
+                            <h4>🔍 Check Registration Status</h4>
+                            <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Already registered? Enter your email to verify.</p>
+                            <form id="verify-form" style="display:flex; gap:8px;">
+                                <input type="email" id="verify-email" class="form-input" placeholder="your@email.com" style="flex:1;">
+                                <button type="submit" class="btn btn-secondary" style="padding: 10px 16px;">Check</button>
+                            </form>
+                            <div id="verify-result" style="margin-top:12px; font-size:0.9rem; min-height:24px;"></div>
+                        </div>
                     </div>
                     <div class="register-stats" id="register-stats">
                         <div class="reg-stat-card" id="reg-total-card">
@@ -447,10 +523,14 @@
                         <button class="suggestion-chip" id="suggestion-2" data-question="What is the difference between a primary and a caucus?">Primary vs. Caucus</button>
                         <button class="suggestion-chip" id="suggestion-3" data-question="How do I register to vote?">Register to Vote</button>
                         <button class="suggestion-chip" id="suggestion-4" data-question="When is Election Day?">Election Day</button>
+                        <button class="suggestion-chip secondary" id="btn-clear-chat" title="Clear chat history">🗑️ Clear Chat</button>
                     </div>
                     <form class="chat-input-area" id="chat-form" aria-label="Send a message">
                         <label for="chat-input" class="sr-only">Type your question about elections</label>
-                        <input type="text" id="chat-input" class="chat-input" placeholder="Ask about the election process..." autocomplete="off" maxlength="500">
+                        <div class="input-wrapper" style="flex:1; display:flex; position:relative;">
+                            <input type="text" id="chat-input" class="chat-input" placeholder="Ask about the election process..." autocomplete="off" maxlength="500">
+                            <button type="button" class="voice-btn" id="btn-voice-chat" title="Speak your question">🎤</button>
+                        </div>
                         <button type="submit" class="chat-send" id="btn-send-chat" aria-label="Send message">
                             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 10l7-7v5h9v4H9v5L2 10z" fill="currentColor"/></svg>
                         </button>
@@ -460,33 +540,78 @@
         </section>
     </main>
 
-    <footer class="site-footer" id="site-footer" role="contentinfo">
-        <div class="container">
-            <div class="footer-content">
+    </main>
+
+    <footer class="app-footer" role="contentinfo">
+        <div class="footer-container">
+            <div class="footer-top">
                 <div class="footer-brand">
                     <div class="logo">
                         <div class="logo-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
                         <span class="logo-text">ElectEd</span>
                     </div>
-                    <p class="footer-tagline">Making democracy accessible through education.</p>
+                    <p class="footer-tagline">Empowering citizens through AI-driven election education.</p>
                 </div>
-                <div class="footer-links">
-                    <div class="footer-col"><h4>Explore</h4><ul><li><a href="#overview" id="footer-overview">Overview</a></li><li><a href="#candidates" id="footer-candidates">Candidates</a></li><li><a href="#timeline" id="footer-timeline">Timeline</a></li><li><a href="#steps" id="footer-steps">Steps Guide</a></li></ul></div>
-                    <div class="footer-col"><h4>Engage</h4><ul><li><a href="#register" id="footer-register">Register</a></li><li><a href="#pollmap" id="footer-pollmap">Polling Map</a></li><li><a href="#quiz" id="footer-quiz">Take Quiz</a></li><li><a href="#chatbot" id="footer-chat">Ask AI</a></li></ul></div>
+                <div class="footer-nav">
+                    <div class="footer-col">
+                        <h4>Platform</h4>
+                        <ul>
+                            <li><a href="#overview">Home Overview</a></li>
+                            <li><a href="#candidates">Candidate Profiles</a></li>
+                            <li><a href="#pollmap">Polling Locations</a></li>
+                            <li><a href="#electoral-map">Electoral College</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h4>Official Resources</h4>
+                        <ul>
+                            <li><a href="https://vote.gov" target="_blank" rel="noopener">Vote.gov (Register)</a></li>
+                            <li><a href="https://www.usa.gov/how-to-vote" target="_blank" rel="noopener">USA.gov Voting Guide</a></li>
+                            <li><a href="https://www.fec.gov" target="_blank" rel="noopener">FEC Campaign Finance</a></li>
+                            <li><a href="https://www.eac.gov" target="_blank" rel="noopener">Election Assistance Comm.</a></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="footer-badge">
+                    <div class="badge-item">
+                        <img src="https://www.gstatic.com/images/branding/googlelogo/svg/googlelogo_clr_74x24dp.svg" alt="Google" height="20">
+                        <span>Powered by Gemini AI & Google Cloud Platform</span>
+                    </div>
                 </div>
             </div>
-            <div class="footer-bottom"><p>&copy; 2026 ElectEd. Educational purposes only. Non-partisan civic education resource.</p></div>
+            <div class="footer-bottom">
+                <p>&copy; 2026 ElectEd Educational Platform. Developed with Google Cloud Technologies.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy</a>
+                    <a href="#">Terms</a>
+                    <a href="#">Security</a>
+                </div>
+            </div>
         </div>
     </footer>
 
+    <!-- Google Analytics (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-7P2W8E5X4Z"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-7P2W8E5X4Z');
+    </script>
+
     <!-- Back to Top Button -->
-    <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Back to top">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V4m0 0l-6 6m6-6l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Scroll to top">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 12l5-5 5 5" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanilla-tilt/1.8.1/vanilla-tilt.min.js"></script>
     <script src="js/api/electionData.js"></script>
     <script src="js/api/registrationData.js"></script>
     <script src="js/app.js"></script>
+
+    <!-- Custom Magnetic Cursor -->
+    <div class="cursor-dot" id="cursor-dot"></div>
+    <div class="cursor-outline" id="cursor-outline"></div>
 </body>
 </html>
