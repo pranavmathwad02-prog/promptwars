@@ -79,6 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         safeInit(() => initVoice(), "Voice");
         safeInit(() => initScrollReveal(), "ScrollReveal");
         safeInit(() => initCursor(), "Cursor");
+        safeInit(() => initPWA(), "PWA");
+        safeInit(() => initAnalytics(), "Analytics");
 
         if (window.VanillaTilt) {
             VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
@@ -501,6 +503,27 @@ function initChat() {
             const res = await ElectionAPI.chat(text);
             removeTyping();
             addMessage(res.response, 'bot');
+            
+            // ── GOOGLE ANALYTICS (Deep Integration) ──
+            if (typeof gtag === 'function') {
+                gtag('event', 'ai_chat_interaction', {
+                    'event_category': 'AI Engagement',
+                    'event_label': text.substring(0, 50)
+                });
+            }
+            
+            // ── TEXT-TO-SPEECH (Advanced) ──
+            if (window.speechSynthesis) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                // Strip emoji and basic html for speaking
+                const cleanText = res.response.replace(/<[^>]*>?/gm, '').replace(/[^\x00-\x7F]/g, "");
+                const utterance = new SpeechSynthesisUtterance(cleanText);
+                utterance.lang = 'en-US';
+                utterance.rate = 1.05;
+                utterance.pitch = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
         } catch (err) {
             removeTyping();
             addMessage("Sorry, something went wrong. Please try again.", 'bot');
@@ -1195,7 +1218,7 @@ async function renderPartyChart() {
  */
 function initPollingMap() {
     const mapEl = document.getElementById('polling-map');
-    if (!mapEl || typeof L === 'undefined') return;
+    if (!mapEl) return;
 
     let map = null;
     let markers = [];
@@ -1212,22 +1235,38 @@ function initPollingMap() {
     observer.observe(mapEl.closest('.pollmap-section'));
 
     async function setupMap() {
-        // Create map centered on the US
-        map = L.map('polling-map', {
-            center: [39.8283, -98.5795],
+        // Wait for Google Maps API to be ready
+        while (!window.google || !window.google.maps) {
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        // Create map centered on the US with premium dark theme
+        const darkMapStyle = [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+            { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+            { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+            { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+            { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+            { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+            { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+            { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
+        ];
+
+        map = new google.maps.Map(mapEl, {
+            center: { lat: 39.8283, lng: -98.5795 },
             zoom: 4,
-            scrollWheelZoom: true,
-            zoomControl: true
+            styles: darkMapStyle,
+            disableDefaultUI: true,
+            zoomControl: true,
         });
-
-        // Use high-detail OpenStreetMap tiles for the polling map
-        const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-        const tileLayer = L.tileLayer(tileUrl, {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }).addTo(map);
-
-        // Remove theme-based tile switching for polling map to keep it "original" and detailed
 
         // Populate state filter dropdown
         const stateSelect = document.getElementById('pollmap-state-select');
@@ -1262,36 +1301,22 @@ function initPollingMap() {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const { latitude, longitude } = pos.coords;
-                    map.setView([latitude, longitude], 10);
+                    map.setCenter({ lat: latitude, lng: longitude });
+                    map.setZoom(10);
                     // Add user marker
-                    L.circleMarker([latitude, longitude], {
-                        radius: 10, fillColor: '#6366f1', fillOpacity: 0.8,
-                        color: '#fff', weight: 2
-                    }).addTo(map).bindPopup('<strong>Your Location</strong>').openPopup();
+                    const userMarker = new google.maps.Marker({
+                        position: { lat: latitude, lng: longitude },
+                        map: map,
+                        title: 'Your Location'
+                    });
+                    const infoWindow = new google.maps.InfoWindow({ content: '<strong>Your Location</strong>' });
+                    infoWindow.open(map, userMarker);
                     showToast('\u2705', 'Location found!', 'Map centered on your position.', 'success');
                 },
                 () => {
                     showToast('\u274c', 'Location access denied', 'Please enable location permissions.', 'error');
                 }
             );
-        });
-    }
-
-    // Create custom colored marker icon (SVG Pin for professional look)
-    function createMarkerIcon(status) {
-        const colors = { open: '#10b981', limited: '#f59e0b', closed: '#ef4444' };
-        const color = colors[status] || '#6b7280';
-        return L.divIcon({
-            className: 'custom-poll-marker',
-            html: `
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M12 21C16 17 20 13.4183 20 9C20 4.58172 16.4183 1 12 1C7.58172 1 4 4.58172 4 9C4 13.4183 8 17 12 21Z" fill="${color}" stroke="#fff" stroke-width="2"/>
-                    <circle cx="12" cy="9" r="3" fill="#fff"/>
-                </svg>
-            `,
-            iconSize: [32, 32],
-            iconAnchor: [16, 32],
-            popupAnchor: [0, -32]
         });
     }
 
@@ -1307,7 +1332,7 @@ function initPollingMap() {
         if (!res.success) return;
 
         // Clear existing markers
-        markers.forEach(m => map.removeLayer(m));
+        markers.forEach(m => m.setMap(null));
         markers = [];
 
         const booths = res.data;
@@ -1318,9 +1343,18 @@ function initPollingMap() {
             return;
         }
 
+        const bounds = new google.maps.LatLngBounds();
+
         // Add markers
         booths.forEach(b => {
-            const marker = L.marker([b.lat, b.lng], { icon: createMarkerIcon(b.status) }).addTo(map);
+            const position = { lat: b.lat, lng: b.lng };
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                title: b.name
+            });
+            bounds.extend(position);
+            
             const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${b.name} ${b.address} ${b.city} ${b.state}`)}`;
             const popupContent = '<div class="poll-popup-name">' + b.name + '</div>' +
                 '<div class="poll-popup-address">' + b.address + ', ' + b.city + ', ' + b.state + '</div>' +
@@ -1328,15 +1362,19 @@ function initPollingMap() {
                 '<span class="poll-popup-status ' + b.status + '">' + b.status + '</span>' +
                 (b.accessible ? ' <span style="font-size:0.75rem;color:var(--text-dim);">\u267f Accessible</span>' : '') +
                 '<div style="margin-top:10px;"><a href="' + gMapsUrl + '" target="_blank" style="color:var(--accent-primary);font-size:0.8rem;font-weight:600;display:inline-flex;align-items:center;gap:4px;">\ud83d\uddfa\ufe0f Open in Google Maps</a></div>';
-            marker.bindPopup(popupContent, { maxWidth: 280 });
+            
+            const infoWindow = new google.maps.InfoWindow({ content: popupContent });
+            marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+            });
             marker._boothId = b.id;
+            marker._infoWindow = infoWindow;
             markers.push(marker);
         });
 
         // Fit bounds if filtered
         if (booths.length > 0 && (filter.search || filter.state)) {
-            const group = L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.3));
+            map.fitBounds(bounds);
         }
 
         // Render sidebar list
@@ -1358,7 +1396,8 @@ function initPollingMap() {
                 const lat = parseFloat(item.dataset.lat);
                 const lng = parseFloat(item.dataset.lng);
                 const id = parseInt(item.dataset.boothId);
-                map.flyTo([lat, lng], 13, { duration: 1 });
+                map.panTo({ lat, lng });
+                map.setZoom(13);
 
                 // Highlight sidebar item
                 listEl.querySelectorAll('.pollmap-booth-item').forEach(el => el.classList.remove('active'));
@@ -1366,7 +1405,11 @@ function initPollingMap() {
 
                 // Open marker popup
                 const marker = markers.find(m => m._boothId === id);
-                if (marker) setTimeout(() => marker.openPopup(), 500);
+                if (marker) {
+                    // Close others
+                    markers.forEach(m => { if (m._infoWindow) m._infoWindow.close(); });
+                    marker._infoWindow.open(map, marker);
+                }
             });
         });
     }
@@ -1465,6 +1508,9 @@ function initElectoralMap() {
                 }
             }).addTo(map);
 
+            // Fix for map "broken" shape - ensure it fits container perfectly
+            setTimeout(() => map.invalidateSize(), 600);
+
         } catch (err) {
             console.error("Failed to load map data:", err);
             mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim);">Failed to load interactive map. Please check your connection.</div>';
@@ -1514,6 +1560,31 @@ async function showStateInfo(stateName) {
                     <span>${rule}</span>
                 </li>
             `).join('');
+
+            // AI Insight Logic
+            const oldBox = document.getElementById('state-ai-insight-box');
+            if (oldBox) oldBox.remove();
+            const aiBox = document.createElement('div');
+            aiBox.id = 'state-ai-insight-box';
+            aiBox.className = 'ai-insight-box';
+            aiBox.innerHTML = `
+                <button class="btn btn-primary ai-insight-btn" id="btn-state-ai-insight" style="width:100%; margin-top:20px; gap:8px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+                    <span>Generate AI State Analysis</span>
+                </button>
+                <div id="state-ai-insight-text" class="ai-insight-text hidden" style="margin-top:15px; padding:15px; background:var(--bg-glass); border:1px solid var(--border-color); border-radius:12px; font-size:0.85rem; line-height:1.6;"></div>
+            `;
+            content.appendChild(aiBox);
+            document.getElementById('btn-state-ai-insight').onclick = async () => {
+                const btn = document.getElementById('btn-state-ai-insight');
+                const textEl = document.getElementById('state-ai-insight-text');
+                btn.innerHTML = '<span>⚡ Processing AI...</span>';
+                btn.disabled = true;
+                const aiRes = await ElectionAPI.chat(`Explain the political significance of ${stateName} in a U.S. election. 2 sentences.`);
+                textEl.innerHTML = `<div style="color:var(--accent-primary); font-weight:700; margin-bottom:5px;">🤖 ElectBot Insight:</div>${aiRes.response}`;
+                textEl.classList.remove('hidden');
+                btn.style.display = 'none';
+            };
         }
     }
 
@@ -1732,4 +1803,91 @@ async function showStateInfo(stateName) {
             showToast(randomFact, "info");
         }
     }, 2500);
+}
+
+// ══════════════════════════════════════
+// ADVANCED MODULES: PWA & ANALYTICS
+// ══════════════════════════════════════
+
+/**
+ * Initializes the Service Worker for Offline PWA capabilities.
+ */
+function initPWA() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js').then(registration => {
+                console.info('PWA ServiceWorker registered successfully with scope: ', registration.scope);
+            }, err => {
+                console.warn('PWA ServiceWorker registration failed: ', err);
+            });
+        });
+    }
+}
+
+/**
+ * Initializes Live Analytics powered by Web Workers and Chart.js.
+ */
+function initAnalytics() {
+    const turnoutCtx = document.getElementById('turnoutChart');
+    const issuesCtx = document.getElementById('issuesChart');
+    if (!turnoutCtx || !issuesCtx || !window.Chart) return;
+
+    // Turnout Projection Chart (Line)
+    const turnoutChart = new Chart(turnoutCtx, {
+        type: 'line',
+        data: {
+            labels: ['18-24', '25-34', '35-44', '45-54', '55-64', '65+'],
+            datasets: [{
+                label: 'Projected Turnout %',
+                data: [0, 0, 0, 0, 0, 0], // Replaced by Worker data
+                borderColor: '#6366f1',
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, max: 100 } }
+        }
+    });
+
+    // Issues Priority Chart (Radar)
+    const issuesChart = new Chart(issuesCtx, {
+        type: 'radar',
+        data: {
+            labels: ['Economy', 'Healthcare', 'Environment', 'Education', 'Security'],
+            datasets: [{
+                label: 'Voter Priority Index',
+                data: [0, 0, 0, 0, 0], // Replaced by Worker data
+                borderColor: '#ec4899',
+                backgroundColor: 'rgba(236, 72, 153, 0.3)',
+                borderWidth: 2,
+                pointBackgroundColor: '#ec4899'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { r: { beginAtZero: true, max: 100 } }
+        }
+    });
+
+    // Setup Web Worker for live data stream
+    if (window.Worker) {
+        const worker = new Worker('js/worker.js');
+        worker.onmessage = function(e) {
+            if (e.data.type === 'ANALYTICS_UPDATE') {
+                turnoutChart.data.datasets[0].data = e.data.data.turnout;
+                turnoutChart.update();
+                
+                issuesChart.data.datasets[0].data = e.data.data.issues;
+                issuesChart.update();
+            }
+        };
+    } else {
+        console.warn("Web Workers not supported. Live analytics disabled.");
+    }
 }
