@@ -1,0 +1,70 @@
+/* ── VOTER REGISTRATION ── */
+.register-container { max-width: 800px; margin: 0 auto; }
+.register-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+.register-form-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 36px; }
+.register-form-card h3 { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; }
+.register-form-card > p { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 24px; }
+.form-group { margin-bottom: 18px; }
+.form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+.form-group label .required { color: var(--error); }
+.form-input, .form-select { width: 100%; padding: 11px 16px; background: var(--bg-glass); border: 1.5px solid var(--border-color); border-radius: var(--radius-sm); color: var(--text-primary); font-size: 0.92rem; font-family: var(--font-main); outline: none; transition: var(--transition); appearance: none; }
+.form-input:focus, .form-select:focus { border-color: var(--accent-1); box-shadow: 0 0 0 3px rgba(99,102,241,0.12); }
+.form-input::placeholder { color: var(--text-muted); }
+.form-select { background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236a6a8e' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; cursor: pointer; }
+.form-select option { background: var(--bg-secondary); color: var(--text-primary); }
+.form-error { color: var(--error); font-size: 0.82rem; margin-top: 4px; display: none; }
+.form-error.show { display: block; }
+.form-success { padding: 16px; background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); border-radius: var(--radius-md); margin-bottom: 20px; display: none; }
+.form-success.show { display: flex; align-items: center; gap: 10px; }
+.form-success span { color: var(--success); font-size: 0.92rem; }
+
+/* Stats sidebar */
+.register-stats { display: flex; flex-direction: column; gap: 20px; }
+.reg-stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; text-align: center; transition: var(--transition); }
+.reg-stat-card:hover { border-color: var(--border-glow); }
+.reg-stat-number { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.reg-stat-label { color: var(--text-muted); font-size: 0.85rem; margin-top: 4px; }
+.registered-list { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 24px; max-height: 280px; overflow-y: auto; }
+.registered-list h4 { font-size: 0.95rem; font-weight: 700; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
+.registered-list::-webkit-scrollbar { width: 4px; }
+.registered-list::-webkit-scrollbar-thumb { background: var(--bg-glass); border-radius: 2px; }
+.voter-entry { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-sm); margin-bottom: 6px; background: var(--bg-glass); transition: var(--transition); }
+.voter-entry:hover { background: rgba(99,102,241,0.06); }
+.voter-info { display: flex; align-items: center; gap: 10px; }
+.voter-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: #fff; flex-shrink: 0; }
+.voter-name { font-weight: 600; font-size: 0.88rem; }
+.voter-detail { font-size: 0.75rem; color: var(--text-muted); }
+.voter-badge { padding: 3px 10px; border-radius: var(--radius-xl); font-size: 0.7rem; font-weight: 600; background: rgba(34,197,94,0.1); color: var(--success); border: 1px solid rgba(34,197,94,0.2); }
+.voter-delete { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 4px; border-radius: 4px; transition: var(--transition); font-size: 0.8rem; }
+.voter-delete:hover { color: var(--error); background: rgba(239,68,68,0.1); }
+.no-voters { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.88rem; }
+
+/* ── CANDIDATES ── */
+.candidates-filters { display: flex; gap: 10px; justify-content: center; margin-bottom: 40px; flex-wrap: wrap; }
+.cand-filter { padding: 8px 20px; border-radius: var(--radius-xl); font-size: 0.85rem; font-weight: 600; border: 1.5px solid var(--border-color); background: var(--bg-glass); transition: var(--transition); }
+.cand-filter.active { background: var(--gradient-1); border-color: transparent; color: #fff; }
+.cand-filter:hover:not(.active) { border-color: var(--accent-1); }
+.candidates-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+.candidate-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); overflow: hidden; transition: var(--transition); }
+.candidate-card:hover { transform: translateY(-4px); border-color: var(--border-glow); box-shadow: var(--shadow-glow); }
+.candidate-banner { height: 6px; }
+.candidate-body { padding: 28px 24px; }
+.candidate-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 16px; }
+.candidate-avatar { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+.candidate-name { font-family: var(--font-display); font-size: 1.15rem; font-weight: 700; }
+.candidate-party { font-size: 0.82rem; color: var(--text-secondary); margin-top: 2px; }
+.candidate-position-badge { display: inline-block; padding: 4px 12px; border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: 600; background: rgba(99,102,241,0.1); color: var(--accent-1); border: 1px solid rgba(99,102,241,0.2); margin-bottom: 14px; }
+.candidate-slogan { font-style: italic; color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px; padding-left: 12px; border-left: 3px solid var(--accent-2); }
+.candidate-platform { margin-bottom: 0; }
+.candidate-platform h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; }
+.candidate-platform li { font-size: 0.85rem; color: var(--text-secondary); padding: 3px 0 3px 16px; position: relative; }
+.candidate-platform li::before { content: '•'; position: absolute; left: 0; color: var(--accent-2); }
+.candidate-state { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: var(--text-muted); margin-top: 12px; }
+
+/* ── RESPONSIVE ADDITIONS ── */
+@media (max-width: 768px) {
+    .register-layout { grid-template-columns: 1fr; }
+    .candidates-grid { grid-template-columns: 1fr; }
+    .candidates-filters { gap: 6px; }
+    .cand-filter { padding: 6px 14px; font-size: 0.8rem; }
+}
