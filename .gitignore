@@ -1,0 +1,10 @@
+# Secret config — API keys, never upload this
+config.js
+
+# Node modules (if using Jest tests)
+node_modules/
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db

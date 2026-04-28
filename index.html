@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Interactive Election Process Education Assistant — Learn about the U.S. election process, timelines, voter registration, and civic participation step-by-step.">
+    <meta name="keywords" content="election process, voting guide, civic education, voter registration, election timeline, democracy, Electoral College">
+    <meta name="author" content="ElectEd">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://generativelanguage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://raw.githubusercontent.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org; frame-ancestors 'none';">
+    <title>ElectEd — Interactive Election Process Education Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+    <!-- Google Gemini API Key Configuration -->
+    <!-- config.js is gitignored — safe for public repos -->
+    <script>window.GEMINI_API_KEY = null;</script>
+    <script src="config.js" onerror="console.info('config.js not found — chatbot using local knowledge base.')"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+</head>
+<body>
+    <!-- Splash / Loading Screen -->
+    <div class="splash-screen" id="splash-screen" aria-label="Loading">
+        <div class="splash-logo">
+            <svg width="56" height="56" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>ElectEd</span>
+        </div>
+        <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+        <div class="splash-tagline">Loading your civic toolkit</div>
+    </div>
+
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" id="scroll-progress" aria-hidden="true"><div class="scroll-progress-fill" id="scroll-progress-fill"></div></div>
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+    <!-- Candidate Detail Modal -->
+    <div class="modal-overlay" id="candidate-modal" role="dialog" aria-modal="true" aria-labelledby="modal-candidate-name">
+        <div class="modal-card" id="modal-card">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-avatar" id="modal-avatar"></div>
+                    <div class="modal-name" id="modal-candidate-name"></div>
+                    <div class="modal-meta" id="modal-meta"></div>
+                </div>
+                <button class="modal-close" id="modal-close" aria-label="Close modal">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M4 4l10 10M14 4L4 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="modal-body" id="modal-body"></div>
+        </div>
+    </div>
+
+    <a href="#main-content" class="skip-link" id="skip-nav">Skip to main content</a>
+
+    <div class="ambient-bg" aria-hidden="true">
+        <div class="ambient-orb orb-1"></div>
+        <div class="ambient-orb orb-2"></div>
+        <div class="ambient-orb orb-3"></div>
+    </div>
+
+    <header class="site-header" id="site-header" role="banner">
+        <div class="header-inner">
+            <div class="logo" id="logo">
+                <div class="logo-icon" aria-hidden="true">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                </div>
+                <span class="logo-text">ElectEd</span>
+            </div>
+            <nav class="main-nav" id="main-nav" role="navigation" aria-label="Main navigation">
+                <ul class="nav-list">
+                    <li><a href="#overview" class="nav-link active" id="nav-overview">Overview</a></li>
+                    <li><a href="#candidates" class="nav-link" id="nav-candidates">Candidates</a></li>
+                    <li><a href="#timeline" class="nav-link" id="nav-timeline">Timeline</a></li>
+                    <li><a href="#steps" class="nav-link" id="nav-steps">Steps</a></li>
+                    <li><a href="#register" class="nav-link" id="nav-register">Register</a></li>
+                    <li><a href="#electoral-map" class="nav-link" id="nav-electoral">Electoral Map</a></li>
+                    <li><a href="#pollmap" class="nav-link" id="nav-pollmap">Polling Map</a></li>
+                    <li><a href="#quiz" class="nav-link" id="nav-quiz">Quiz</a></li>
+                    <li><a href="#faq" class="nav-link" id="nav-faq">FAQ</a></li>
+                    <li><a href="#chatbot" class="nav-link" id="nav-chatbot">Ask AI</a></li>
+                </ul>
+            </nav>
+            <div style="display:flex;align-items:center;gap:4px;">
+                <button class="theme-toggle" id="theme-toggle" data-theme="dark" aria-label="Toggle light/dark theme" title="Toggle theme">
+                    <div class="theme-toggle-thumb">🌙</div>
+                    <span class="theme-toggle-label">Toggle theme</span>
+                </button>
+                <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle navigation menu" aria-expanded="false"><span class="hamburger"></span></button>
+            </div>
+        </div>
+    </header>
+
+    <main id="main-content">
+        <!-- Hero -->
+        <section class="hero" id="hero-section" aria-labelledby="hero-title">
+            <canvas id="hero-particles" aria-hidden="true"></canvas>
+            <div class="hero-content">
+                <div class="hero-badge">🗳️ Interactive Civic Education</div>
+                <h1 id="hero-title" class="hero-title">Understand the<br><span class="gradient-text">Election Process</span></h1>
+                <p class="hero-subtitle">Your interactive guide to understanding how elections work — from voter registration to inauguration. Explore timelines, learn each step, and test your knowledge.</p>
+                <div class="hero-actions">
+                    <a href="#timeline" class="btn btn-primary" id="btn-explore-timeline"><span>Explore Timeline</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+                    <a href="#steps" class="btn btn-secondary" id="btn-learn-steps">Learn the Steps</a>
+                </div>
+                <div class="hero-stats" aria-label="Quick facts">
+                    <div class="stat-item" id="stat-steps"><span class="stat-number" data-count="8">0</span><span class="stat-label">Key Steps</span></div>
+                    <div class="stat-item" id="stat-months"><span class="stat-number" data-count="18">0</span><span class="stat-label">Month Cycle</span></div>
+                    <div class="stat-item" id="stat-quiz"><span class="stat-number" data-count="10">0</span><span class="stat-label">Quiz Questions</span></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Overview -->
+        <section class="section overview-section" id="overview" aria-labelledby="overview-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Understanding Democracy</span>
+                    <h2 id="overview-title" class="section-title">How Elections Work</h2>
+                    <p class="section-desc">The U.S. election process involves multiple stages that ensure fair representation and democratic participation.</p>
+                </div>
+                <div class="overview-grid" id="overview-grid">
+                    <article class="overview-card" id="overview-card-1" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><circle cx="14" cy="10" r="5" stroke="currentColor" stroke-width="2"/><path d="M4 24c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                        <h3 class="card-title">Voter Registration</h3>
+                        <p class="card-desc">Citizens must register to vote before participating. Requirements vary by state, with deadlines typically 15-30 days before an election.</p>
+                    </article>
+                    <article class="overview-card" id="overview-card-2" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect x="3" y="6" width="22" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M3 12h22M9 6v16" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <h3 class="card-title">Primary Elections</h3>
+                        <p class="card-desc">Parties hold primaries and caucuses to select candidates from February through June of the election year.</p>
+                    </article>
+                    <article class="overview-card" id="overview-card-3" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 3l3.09 6.26L24 10.27l-5 4.87 1.18 6.88L14 18.77l-6.18 3.25L9 15.14l-5-4.87 6.91-1.01L14 3z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+                        <h3 class="card-title">National Conventions</h3>
+                        <p class="card-desc">Each party holds a convention where delegates officially nominate their presidential candidate and adopt the party platform.</p>
+                    </article>
+                    <article class="overview-card" id="overview-card-4" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 4v20M4 14h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="14" cy="14" r="10" stroke="currentColor" stroke-width="2"/></svg></div>
+                        <h3 class="card-title">General Election</h3>
+                        <p class="card-desc">Held on the first Tuesday after the first Monday in November, citizens cast their votes for President and other offices.</p>
+                    </article>
+                    <article class="overview-card" id="overview-card-5" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M6 14l6 6 10-10" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <h3 class="card-title">Electoral College</h3>
+                        <p class="card-desc">The President is formally elected by 538 electors. A candidate needs 270 electoral votes to win.</p>
+                    </article>
+                    <article class="overview-card" id="overview-card-6" tabindex="0">
+                        <div class="card-icon" aria-hidden="true"><svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M14 4l2 6h6l-5 4 2 6-5-4-5 4 2-6-5-4h6l2-6z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M4 24h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+                        <h3 class="card-title">Inauguration</h3>
+                        <p class="card-desc">On January 20th, the President-elect takes the oath of office and officially begins their term.</p>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <!-- Electoral College Map -->
+        <section class="section electoral-map-section" id="electoral-map" aria-labelledby="electoral-map-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Interactive Data</span>
+                    <h2 id="electoral-map-title" class="section-title">Electoral College Map</h2>
+                    <p class="section-desc">Click on any state to explore its electoral votes, registration deadlines, and specific voting rules.</p>
+                </div>
+                <div class="electoral-map-container">
+                    <div class="map-layout">
+                        <div class="map-svg-wrapper" id="us-map-wrapper">
+                            <div id="electoral-leaflet-map" style="width: 100%; height: 500px; border-radius: 16px; border: 1px solid var(--border-color);"></div>
+                            <div class="map-legend">
+                                <div class="legend-item"><span class="legend-box" style="background: var(--accent-primary);"></span> Selected</div>
+                                <div class="legend-item"><span class="legend-box" style="background: var(--bg-tertiary);"></span> State</div>
+                            </div>
+                        </div>
+                        <aside class="map-info-card" id="state-info-card">
+                            <div class="map-info-placeholder" id="map-info-placeholder">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                <h3>Select a State</h3>
+                                <p>Click on the map to see electoral details for that state.</p>
+                            </div>
+                            <div class="state-info-content hidden" id="state-info-content">
+                                <div class="state-info-header">
+                                    <div class="state-flag-placeholder" id="state-flag">🇺🇸</div>
+                                    <h3 class="state-name-h3" id="state-name">State Name</h3>
+                                </div>
+                                <div class="electoral-votes-badge" id="state-ev">0 Electoral Votes</div>
+                                <div class="state-stats-grid">
+                                    <div class="state-stat-item">
+                                        <div class="state-stat-label">Deadline</div>
+                                        <div class="state-stat-value" id="state-deadline">-</div>
+                                    </div>
+                                    <div class="state-stat-item">
+                                        <div class="state-stat-label">Voter ID</div>
+                                        <div class="state-stat-value" id="state-id-req">-</div>
+                                    </div>
+                                </div>
+                                <ul class="state-rules-list" id="state-rules"></ul>
+                            </div>
+                        </aside>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Candidates -->
+        <section class="section candidates-section" id="candidates" aria-labelledby="candidates-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Election Candidates</span>
+                    <h2 id="candidates-title" class="section-title">Who's Running</h2>
+                    <p class="section-desc">Meet the candidates standing for election across various positions and parties.</p>
+                </div>
+                <div class="candidates-filters" id="candidates-filters">
+                    <button class="cand-filter active" id="cand-filter-all" data-filter="all">All Candidates</button>
+                    <button class="cand-filter" id="cand-filter-president" data-filter="President">President</button>
+                    <button class="cand-filter" id="cand-filter-senate" data-filter="Senate">Senate</button>
+                    <button class="cand-filter" id="cand-filter-house" data-filter="House">House</button>
+                    <button class="cand-filter" id="cand-filter-governor" data-filter="Governor">Governor</button>
+                </div>
+                <div class="candidates-grid" id="candidates-grid"></div>
+            </div>
+        </section>
+
+        <!-- Timeline -->
+        <section class="section timeline-section" id="timeline" aria-labelledby="timeline-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Election Calendar</span>
+                    <h2 id="timeline-title" class="section-title">Interactive Timeline</h2>
+                    <p class="section-desc">Follow the election journey from start to finish. Click on any milestone to learn more.</p>
+                </div>
+                <div class="timeline-controls" id="timeline-controls" role="tablist" aria-label="Election type filter">
+                    <button class="timeline-filter active" role="tab" aria-selected="true" id="filter-presidential" data-filter="presidential">Presidential Election</button>
+                    <button class="timeline-filter" role="tab" aria-selected="false" id="filter-midterm" data-filter="midterm">Midterm Election</button>
+                </div>
+                <div class="timeline-wrapper" id="timeline-wrapper" role="tabpanel"><div class="timeline-line" aria-hidden="true"></div></div>
+            </div>
+        </section>
+
+        <!-- Steps -->
+        <section class="section steps-section" id="steps" aria-labelledby="steps-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Step-by-Step Guide</span>
+                    <h2 id="steps-title" class="section-title">The Election Journey</h2>
+                    <p class="section-desc">Dive deep into each stage of the election process with detailed explanations.</p>
+                </div>
+                <div class="steps-interactive" id="steps-interactive">
+                    <div class="steps-nav" id="steps-nav" role="tablist" aria-label="Election steps"></div>
+                    <div class="steps-content" id="steps-content" role="tabpanel"></div>
+                </div>
+                <div class="steps-progress" id="steps-progress" aria-label="Step progress">
+                    <div class="progress-bar"><div class="progress-fill" id="progress-fill" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div></div>
+                    <div class="progress-label" id="progress-label">Step 1 of 8</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Voter Registration -->
+        <section class="section register-section" id="register" aria-labelledby="register-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Get Involved</span>
+                    <h2 id="register-title" class="section-title">Voter Registration</h2>
+                    <p class="section-desc">Register to vote and become part of the democratic process. Your data is saved locally on your device.</p>
+                </div>
+                <div class="register-layout">
+                    <div class="register-form-card" id="register-form-card">
+                        <h3>📋 Register to Vote</h3>
+                        <p>Fill out the form below to simulate voter registration.</p>
+                        <div class="form-success" id="reg-success"><span>✅</span><span id="reg-success-text"></span></div>
+                        <form id="registration-form" novalidate>
+                            <div class="form-group">
+                                <label for="reg-name">Full Name <span class="required">*</span></label>
+                                <input type="text" id="reg-name" class="form-input" placeholder="Enter your full name" required maxlength="100">
+                                <div class="form-error" id="reg-name-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-email">Email Address <span class="required">*</span></label>
+                                <input type="email" id="reg-email" class="form-input" placeholder="your@email.com" required maxlength="200">
+                                <div class="form-error" id="reg-email-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-dob">Date of Birth <span class="required">*</span></label>
+                                <input type="date" id="reg-dob" class="form-input" required>
+                                <div class="form-error" id="reg-dob-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-state">State <span class="required">*</span></label>
+                                <select id="reg-state" class="form-select" required><option value="">Select your state...</option></select>
+                                <div class="form-error" id="reg-state-error"></div>
+                            </div>
+                            <div class="form-group">
+                                <label for="reg-party">Party Affiliation</label>
+                                <select id="reg-party" class="form-select">
+                                    <option value="Unaffiliated">Unaffiliated / Independent</option>
+                                    <option value="Democratic Party">Democratic Party</option>
+                                    <option value="Republican Party">Republican Party</option>
+                                    <option value="Libertarian Party">Libertarian Party</option>
+                                    <option value="Green Party">Green Party</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary" id="btn-register" style="width:100%;justify-content:center;margin-top:8px;"><span>Register Now</span></button>
+                        </form>
+                    </div>
+                    <div class="register-stats" id="register-stats">
+                        <div class="reg-stat-card" id="reg-total-card">
+                            <div class="reg-stat-number" id="reg-total-count">0</div>
+                            <div class="reg-stat-label">Registered Voters</div>
+                        </div>
+                        <div class="registered-list" id="registered-list">
+                            <h4>📜 Registered Members</h4>
+                            <div id="voters-list-inner"><div class="no-voters">No voters registered yet.</div></div>
+                        </div>
+                        <div class="reg-chart" id="reg-chart">
+                            <div class="reg-chart-title">Party Breakdown</div>
+                            <div id="reg-chart-bars"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Polling Booth Map -->
+        <section class="section pollmap-section" id="pollmap" aria-labelledby="pollmap-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Interactive Explorer</span>
+                    <h2 id="pollmap-title" class="section-title">Interactive Civic Map</h2>
+                    <p class="section-desc">Explore all streets, cities, and polling locations nationwide. Use the search to find any place in the country.</p>
+                </div>
+                <div class="pollmap-controls" id="pollmap-controls">
+                    <div class="pollmap-search">
+                        <svg class="pollmap-search-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        <input type="text" class="pollmap-search-input" id="pollmap-search-input" placeholder="Search by city or state..." autocomplete="off">
+                    </div>
+                    <button class="btn btn-primary pollmap-locate-btn" id="btn-locate-me" title="Use my current location">
+                        <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        <span>My Location</span>
+                    </button>
+                    <div class="pollmap-state-filter">
+                        <select class="form-select pollmap-state-select" id="pollmap-state-select">
+                            <option value="all">All States</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pollmap-container" id="pollmap-container" style="max-width: 100%; width: 100%;">
+                    <div id="polling-map" class="polling-map" style="height: 600px;"></div>
+                    <div class="pollmap-sidebar" id="pollmap-sidebar">
+                        <h4 class="pollmap-sidebar-title">Nearby Locations</h4>
+                        <div class="pollmap-list" id="pollmap-list">
+                            <div class="pollmap-empty">Search for a city or state to find civic locations.</div>
+                        </div>
+                        <div class="pollmap-legend">
+                            <div class="legend-item"><span class="legend-dot" style="background:#10b981;"></span> Polling Station</div>
+                            <div class="legend-item"><span class="legend-dot" style="background:#6366f1;"></span> Your Location</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Quiz -->
+        <section class="section quiz-section" id="quiz" aria-labelledby="quiz-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Test Your Knowledge</span>
+                    <h2 id="quiz-title" class="section-title">Election Process Quiz</h2>
+                    <p class="section-desc">Test your understanding with interactive questions about the election process.</p>
+                </div>
+                <div class="quiz-container" id="quiz-container">
+                    <div class="quiz-start" id="quiz-start">
+                        <div class="quiz-start-icon" aria-hidden="true">🎯</div>
+                        <h3>Ready to Test Your Knowledge?</h3>
+                        <p>Answer 10 questions about the U.S. election process.</p>
+                        <button class="btn btn-primary" id="btn-start-quiz"><span>Start Quiz</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    </div>
+                    <div class="quiz-active hidden" id="quiz-active">
+                        <div class="quiz-header">
+                            <div class="quiz-progress-info"><span id="quiz-question-num">Question 1 of 10</span><span id="quiz-score-display">Score: 0</span></div>
+                            <div class="quiz-progress-bar"><div class="quiz-progress-fill" id="quiz-progress-fill" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div></div>
+                        </div>
+                        <div class="quiz-question" id="quiz-question"><h3 id="quiz-question-text"></h3></div>
+                        <div class="quiz-options" id="quiz-options" role="radiogroup" aria-labelledby="quiz-question-text"></div>
+                        <div class="quiz-feedback hidden" id="quiz-feedback"><div class="feedback-icon" id="feedback-icon" aria-hidden="true"></div><p id="feedback-text"></p></div>
+                        <button class="btn btn-primary hidden" id="btn-next-question"><span>Next Question</span><svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h12m-4-4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                    </div>
+                    <div class="quiz-results hidden" id="quiz-results">
+                        <div class="results-icon" aria-hidden="true" id="results-icon"></div>
+                        <h3 id="results-title"></h3>
+                        <p id="results-message"></p>
+                        <div class="results-score" id="results-score-display">
+                            <div class="score-circle" id="score-circle">
+                                <svg viewBox="0 0 120 120" aria-hidden="true"><circle cx="60" cy="60" r="54" stroke-width="8" fill="none" class="score-bg"/><circle cx="60" cy="60" r="54" stroke-width="8" fill="none" class="score-fill" id="score-fill"/></svg>
+                                <span class="score-text" id="score-text">0%</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" id="btn-retake-quiz"><span>Retake Quiz</span></button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ -->
+        <section class="section faq-section" id="faq" aria-labelledby="faq-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">Common Questions</span>
+                    <h2 id="faq-title" class="section-title">Frequently Asked Questions</h2>
+                    <p class="section-desc">Find answers to the most common questions about the election process.</p>
+                </div>
+                <div class="faq-search" id="faq-search">
+                    <svg class="faq-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    <input type="text" class="faq-search-input" id="faq-search-input" placeholder="Search questions..." autocomplete="off">
+                </div>
+                <div class="faq-container" id="faq-container" role="list"></div>
+                <div class="faq-no-results" id="faq-no-results">🔍 No matching questions found. Try a different search term.</div>
+            </div>
+        </section>
+
+        <!-- Chatbot -->
+        <section class="section chatbot-section" id="chatbot" aria-labelledby="chatbot-title">
+            <div class="container">
+                <div class="section-header">
+                    <span class="section-tag">AI Assistant</span>
+                    <h2 id="chatbot-title" class="section-title">Ask About Elections</h2>
+                    <p class="section-desc">Have a question? Ask our AI-powered assistant for instant answers.</p>
+                    <div class="gemini-badge" id="gemini-badge" aria-label="Powered by Google Gemini AI">
+                        <svg width="16" height="16" viewBox="0 0 28 28" fill="none" aria-hidden="true"><path d="M14 2C7.373 2 2 7.373 2 14s5.373 12 12 12 12-5.373 12-12S20.627 2 14 2z" fill="#4285F4"/><path d="M14 7v14M7 14h14" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>
+                        <span>Powered by Google Gemini</span>
+                    </div>
+                </div>
+                <div class="chat-container" id="chat-container">
+                    <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-label="Chat messages">
+                        <div class="chat-message bot" id="chat-welcome">
+                            <div class="message-avatar" aria-hidden="true">🗳️</div>
+                            <div class="message-content">
+                                <p>Hello! I'm your Election Process Assistant. I can help you understand:</p>
+                                <ul><li>How voter registration works</li><li>The difference between primaries and caucuses</li><li>How the Electoral College functions</li><li>Important election dates and deadlines</li><li>And much more!</li></ul>
+                                <p>What would you like to know?</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-suggestions" id="chat-suggestions" aria-label="Suggested questions">
+                        <button class="suggestion-chip" id="suggestion-1" data-question="How does the Electoral College work?">Electoral College</button>
+                        <button class="suggestion-chip" id="suggestion-2" data-question="What is the difference between a primary and a caucus?">Primary vs. Caucus</button>
+                        <button class="suggestion-chip" id="suggestion-3" data-question="How do I register to vote?">Register to Vote</button>
+                        <button class="suggestion-chip" id="suggestion-4" data-question="When is Election Day?">Election Day</button>
+                    </div>
+                    <form class="chat-input-area" id="chat-form" aria-label="Send a message">
+                        <label for="chat-input" class="sr-only">Type your question about elections</label>
+                        <input type="text" id="chat-input" class="chat-input" placeholder="Ask about the election process..." autocomplete="off" maxlength="500">
+                        <button type="submit" class="chat-send" id="btn-send-chat" aria-label="Send message">
+                            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M2 10l7-7v5h9v4H9v5L2 10z" fill="currentColor"/></svg>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="site-footer" id="site-footer" role="contentinfo">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <div class="logo-icon" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+                        <span class="logo-text">ElectEd</span>
+                    </div>
+                    <p class="footer-tagline">Making democracy accessible through education.</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-col"><h4>Explore</h4><ul><li><a href="#overview" id="footer-overview">Overview</a></li><li><a href="#candidates" id="footer-candidates">Candidates</a></li><li><a href="#timeline" id="footer-timeline">Timeline</a></li><li><a href="#steps" id="footer-steps">Steps Guide</a></li></ul></div>
+                    <div class="footer-col"><h4>Engage</h4><ul><li><a href="#register" id="footer-register">Register</a></li><li><a href="#pollmap" id="footer-pollmap">Polling Map</a></li><li><a href="#quiz" id="footer-quiz">Take Quiz</a></li><li><a href="#chatbot" id="footer-chat">Ask AI</a></li></ul></div>
+                </div>
+            </div>
+            <div class="footer-bottom"><p>&copy; 2026 ElectEd. Educational purposes only. Non-partisan civic education resource.</p></div>
+        </div>
+    </footer>
+
+    <!-- Back to Top Button -->
+    <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Back to top">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><path d="M11 18V4m0 0l-6 6m6-6l6 6" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="js/api/electionData.js"></script>
+    <script src="js/api/registrationData.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

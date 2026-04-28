@@ -1,0 +1,42 @@
+{
+  "name": "elected-election-education",
+  "version": "2.0.0",
+  "description": "ElectEd — Interactive Election Process Education Assistant",
+  "main": "js/app.js",
+  "scripts": {
+    "test": "jest --coverage --verbose",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --coverage --ci --reporters=default",
+    "serve": "python serve.py"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ],
+    "collectCoverageFrom": [
+      "js/api/**/*.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 90,
+        "lines": 90,
+        "statements": 90
+      }
+    }
+  },
+  "keywords": [
+    "election",
+    "civics",
+    "education",
+    "democracy",
+    "voting",
+    "google-gemini"
+  ],
+  "author": "ElectEd",
+  "license": "MIT",
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
