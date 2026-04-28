@@ -3,112 +3,95 @@
  * Main application controller with modular architecture.
  */
 'use strict';
+
+// Global Google Maps callback to prevent console errors
+window.initMap = () => console.info("Google Maps Ready");
+
 document.addEventListener('DOMContentLoaded', () => {
-    // ── HEADER & NAV ──
-    const header = document.getElementById('site-header');
-    const mobileToggle = document.getElementById('mobile-toggle');
-    const mainNav = document.getElementById('main-nav');
-    const navLinks = document.querySelectorAll('.nav-link');
-
-    window.addEventListener('scroll', () => {
-        header.classList.toggle('scrolled', window.scrollY > 50);
-    });
-
-    mobileToggle.addEventListener('click', () => {
-        const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
-        mobileToggle.setAttribute('aria-expanded', !expanded);
-        mainNav.classList.toggle('open');
-        document.body.classList.toggle('no-scroll', !expanded); // Prevent scrolling when menu open
-    });
-
-    // Active nav tracking on scroll
-    const sections = document.querySelectorAll('.section, .hero');
-    const observerNav = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const id = entry.target.id.replace('-section', '');
-                navLinks.forEach(l => l.classList.remove('active'));
-                const match = document.querySelector(`.nav-link[href="#${id}"]`);
-                if (match) match.classList.add('active');
-            }
-        });
-    }, { threshold: 0.3, rootMargin: '-80px 0px 0px 0px' });
-    sections.forEach(s => observerNav.observe(s));
-
-    // Close mobile nav on link click
-    navLinks.forEach(link => {
-        link.addEventListener('click', () => {
-            mainNav.classList.remove('open');
-            mobileToggle.setAttribute('aria-expanded', 'false');
-        });
-    });
-
-    // ── STAT COUNTER ANIMATION ──
-    const animateCounters = () => {
-        document.querySelectorAll('.stat-number[data-count]').forEach(el => {
-            const target = parseInt(el.dataset.count);
-            const duration = 1500;
-            const start = performance.now();
-            const animate = (now) => {
-                const progress = Math.min((now - start) / duration, 1);
-                const eased = 1 - Math.pow(1 - progress, 3);
-                el.textContent = Math.round(target * eased);
-                if (progress < 1) requestAnimationFrame(animate);
-            };
-            requestAnimationFrame(animate);
-        });
+    // ── SAFETY: FORCE DISMISS SPLASH ──
+    const splash = document.getElementById('splash-screen');
+    const dismissSplash = () => {
+        if (splash) {
+            splash.classList.add('hidden');
+            setTimeout(() => { if (splash.parentNode) splash.remove(); }, 600);
+        }
     };
-    const heroObs = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) { animateCounters(); heroObs.disconnect(); }
-    }, { threshold: 0.5 });
-    const heroSection = document.getElementById('hero-section');
-    if (heroSection) heroObs.observe(heroSection);
-
-    // ── SCROLL REVEAL ──
-    const revealObs = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); } });
-    }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
-    document.querySelectorAll('.overview-card, .section-header').forEach(el => { el.classList.add('reveal'); revealObs.observe(el); });
+    // Failsafe: Hide splash and enable scroll after 2.5s no matter what
+    setTimeout(() => {
+        dismissSplash();
+        document.body.classList.remove('no-scroll');
+    }, 2500);
 
     try {
-        // ── PREMIUM ENHANCEMENTS ──
-        initSplashScreen();
-        initScrollProgress();
-        initThemeToggle();
-        initBackToTop();
-        initParticles();
-        initRippleEffect();
-        initEnhancedReveals();
-        initFAQSearch();
+        // ── HEADER & NAV ──
+        const header = document.getElementById('site-header');
+        const mobileToggle = document.getElementById('mobile-toggle');
+        const mainNav = document.getElementById('main-nav');
+        const navLinks = document.querySelectorAll('.nav-link');
 
-        // ── CORE MODULES ──
-        initTimeline().catch(e => console.warn("Timeline failed:", e));
-        initSteps().catch(e => console.warn("Steps failed:", e));
-        initQuiz().catch(e => console.warn("Quiz failed:", e));
-        initFAQ().catch(e => console.warn("FAQ failed:", e));
-        initChat().catch(e => console.warn("Chat failed:", e));
-        initCandidates().catch(e => console.warn("Candidates failed:", e));
-        initRegistration().catch(e => console.warn("Registration failed:", e));
-        initPollingMap().catch(e => console.warn("Polling Map failed:", e));
-        initElectoralMap().catch(e => console.warn("Electoral Map failed:", e));
+        if (header) {
+            window.addEventListener('scroll', () => {
+                header.classList.toggle('scrolled', window.scrollY > 50);
+            }, { passive: true });
+        }
+
+        if (mobileToggle && mainNav) {
+            mobileToggle.addEventListener('click', () => {
+                const expanded = mobileToggle.getAttribute('aria-expanded') === 'true';
+                mobileToggle.setAttribute('aria-expanded', !expanded);
+                mainNav.classList.toggle('open');
+                document.body.classList.toggle('no-scroll', !expanded);
+            });
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    mainNav.classList.remove('open');
+                    mobileToggle.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('no-scroll');
+                });
+            });
+        }
+
+        // ── CORE MODULES (Protected Calls) ──
+        const safeInit = (fn, name) => {
+            try { fn(); } catch (e) { console.warn(`${name} failed:`, e); }
+        };
+
+        safeInit(() => initTimeline(), "Timeline");
+        safeInit(() => initSteps(), "Steps");
+        safeInit(() => initQuiz(), "Quiz");
+        safeInit(() => initFAQ(), "FAQ");
+        safeInit(() => initChat(), "Chat");
+        safeInit(() => initCandidates(), "Candidates");
+        safeInit(() => initRegistration(), "Registration");
+        safeInit(() => initPollingMap(), "Polling Map");
+        safeInit(() => initElectoralMap(), "Electoral Map");
+        safeInit(() => initScrollProgress(), "ScrollProgress");
+        safeInit(() => initThemeToggle(), "Theme");
+        safeInit(() => initBackToTop(), "BackToTop");
+        safeInit(() => initParticles(), "Particles");
+        safeInit(() => initRippleEffect(), "Ripple");
+        safeInit(() => initEnhancedReveals(), "Reveals");
+        safeInit(() => initFAQSearch(), "FAQSearch");
+        safeInit(() => initVerification(), "Verification");
+        safeInit(() => initInterLink(), "InterLink");
+        safeInit(() => initSharing(), "Sharing");
+        safeInit(() => initCountdown(), "Countdown");
+        safeInit(() => initVoice(), "Voice");
+        safeInit(() => initScrollReveal(), "ScrollReveal");
+        safeInit(() => initCursor(), "Cursor");
 
         if (window.VanillaTilt) {
             VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
-                max: 10,
-                speed: 400,
-                glare: true,
-                "max-glare": 0.2,
-                scale: 1.02
+                max: 10, speed: 400, glare: true, "max-glare": 0.2, scale: 1.02
             });
         }
-    } catch (globalError) {
-        console.error("Critical Platform Error:", globalError);
-        // Emergency splash removal
-        const splash = document.getElementById('splash-screen');
-        if (splash) {
-            splash.style.opacity = '0';
-            setTimeout(() => splash.remove(), 600);
-        }
+
+        // Dismiss splash when all safe-inits are done
+        dismissSplash();
+
+    } catch (criticalError) {
+        console.error("Critical Platform Exception:", criticalError);
+        dismissSplash();
     }
 });
 
