@@ -358,6 +358,23 @@ html[data-theme="light"] .nav-link:hover { color: var(--accent-primary); }
 }
 .candidate-card:hover .card-click-hint { opacity: 1; }
 
+/* ── MAP RESPONSIVENESS ── */
+@media (max-width: 992px) {
+    .electoral-map-layout {
+        grid-template-columns: 1fr !important;
+    }
+    .pollmap-container {
+        flex-direction: column;
+    }
+    .polling-map {
+        height: 400px !important;
+    }
+    .pollmap-sidebar {
+        width: 100% !important;
+        max-height: 300px;
+    }
+}
+
 /* ── RESPONSIVE FIXES ── */
 @media (max-width: 768px) {
     .toast-container { right: 12px; left: 12px; }
@@ -395,4 +412,138 @@ html[data-theme="light"] .gemini-badge {
 @keyframes geminiGlow {
     from { box-shadow: 0 0 0 0 rgba(66,133,244,0); }
     to { box-shadow: 0 0 12px 2px rgba(66,133,244,0.2); }
+}
+
+/* ── HIGHLIGHT PULSE ── */
+@keyframes highlightPulse {
+    0% { box-shadow: 0 0 0 0 rgba(99,102,241,0.4); border-color: var(--accent-primary); }
+    50% { box-shadow: 0 0 0 10px rgba(99,102,241,0); border-color: var(--accent-primary); }
+    100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+}
+.highlight-pulse {
+    animation: highlightPulse 1s ease-out 2;
+    border-width: 2px !important;
+}
+
+/* ── SECONDARY SUGGESTION CHIP ── */
+.suggestion-chip.secondary {
+    background: rgba(255,255,255,0.03);
+    border-color: var(--border-color);
+    color: var(--text-dim);
+    margin-left: auto;
+}
+.suggestion-chip.secondary:hover {
+    background: rgba(239,68,68,0.1);
+    border-color: rgba(239,68,68,0.4);
+    color: #ef4444;
+}
+
+html[data-theme="light"] .suggestion-chip.secondary {
+    background: rgba(0,0,0,0.04);
+}
+/* ── ELECTION COUNTDOWN ── */
+.election-countdown {
+    margin-top: 48px; padding: 24px;
+    background: var(--bg-glass); border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg); backdrop-filter: blur(12px);
+    display: inline-flex; flex-direction: column; gap: 16px;
+    animation: fadeIn 1s ease;
+    text-align: center;
+}
+.countdown-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; color: var(--accent-primary); }
+.countdown-timer { display: flex; gap: 24px; justify-content: center; }
+.timer-part { display: flex; flex-direction: column; align-items: center; min-width: 60px; }
+.timer-part span { font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 800; color: var(--text-primary); line-height: 1; }
+.timer-part small { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; margin-top: 6px; font-weight: 600; letter-spacing: 1px; }
+
+/* ── VOICE BUTTON ── */
+.voice-btn {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--bg-secondary); border: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s; z-index: 5;
+    font-size: 1rem;
+}
+.voice-btn:hover { border-color: var(--accent-primary); color: var(--accent-primary); background: var(--bg-card-hover); }
+.voice-btn.listening {
+    background: #ef4444; color: #fff; border-color: #ef4444;
+    animation: voicePulse 1s infinite;
+}
+@keyframes voicePulse { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,0.4); } 70% { box-shadow: 0 0 0 8px rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }
+
+/* ── SCROLL REVEAL (JS Triggered) ── */
+.section, .overview-card, .step-card, .candidate-card, .timeline-item, .reg-stat-card {
+    opacity: 0; transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-visible { opacity: 1 !important; transform: translateY(0) !important; }
+
+/* ── ADDITIONAL REFINEMENTS ── */
+.app-footer {
+    background: linear-gradient(to bottom, var(--bg-primary), #050510);
+}
+.footer-badge .badge-item img { filter: grayscale(1) brightness(2); opacity: 0.7; transition: 0.3s; }
+.footer-badge .badge-item:hover img { filter: none; opacity: 1; }
+
+@media (max-width: 600px) {
+    .countdown-timer { gap: 12px; }
+    .timer-part span { font-size: 1.6rem; }
+    .timer-part { min-width: 45px; }
+}
+
+/* ── CUSTOM CURSOR ── */
+.cursor-dot {
+    width: 6px; height: 6px; background: var(--accent-primary);
+    position: fixed; top: 0; left: 0; pointer-events: none;
+    z-index: 10001; border-radius: 50%; opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.cursor-outline {
+    width: 24px; height: 24px; border: 1.5px solid var(--accent-primary);
+    position: fixed; top: -12px; left: -12px; pointer-events: none;
+    z-index: 10000; border-radius: 50%; opacity: 0;
+    transition: opacity 0.3s ease, width 0.3s ease, height 0.3s ease, background 0.3s ease;
+}
+body:hover .cursor-dot, body:hover .cursor-outline { opacity: 1; }
+.cursor-hover { width: 44px; height: 44px; background: rgba(99, 102, 241, 0.1); border-color: var(--accent-primary); }
+
+/* ── ICON BUTTON ── */
+.btn-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--bg-glass); border: 1px solid var(--border-color);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; cursor: pointer; transition: all 0.3s;
+    backdrop-filter: blur(10px);
+    color: var(--text-primary);
+}
+.btn-icon:hover { border-color: var(--accent-primary); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(99,102,241,0.2); }
+
+@media (max-width: 768px) {
+    .cursor-dot, .cursor-outline { display: none; }
+}
+
+/* ── MAP TOOLTIP ── */
+.map-tooltip {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 6px 12px !important;
+    color: var(--text-primary) !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.4) !important;
+    backdrop-filter: blur(8px) !important;
+}
+.leaflet-tooltip-top:before { border-top-color: var(--border-color) !important; }
+
+/* ── UTILITIES ── */
+.no-scroll { overflow: hidden; }
+
+/* ── MOBILE NAV GLASS ── */
+@media (max-width: 991px) {
+    .main-nav {
+        background: rgba(15, 23, 42, 0.9) !important;
+        backdrop-filter: blur(20px);
+    }
 }
