@@ -26,10 +26,18 @@
     --radius-xl: 28px;
     --font-main: 'Inter', system-ui, sans-serif;
     --font-display: 'Outfit', system-ui, sans-serif;
+    --font-heading: 'Outfit', system-ui, sans-serif;
     --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     --success: #22c55e;
     --error: #ef4444;
     --warning: #f59e0b;
+    /* Aliases used across premium.css / electoralMap.css */
+    --accent-primary: #6366f1;
+    --accent-secondary: #a855f7;
+    --accent-primary-glow: rgba(99,102,241,0.15);
+    --bg-tertiary: rgba(255,255,255,0.06);
+    --card-bg: rgba(255,255,255,0.04);
+    --text-dim: #6a6a8e;
 }
 
 /* ── RESET & BASE ── */
@@ -52,6 +60,7 @@ input { font-family: inherit; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
 .hidden { display: none !important; }
 .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+@media (max-width: 480px) { .container { padding: 0 16px; } }
 .skip-link { position: absolute; top: -100%; left: 16px; background: var(--accent-1); color: #fff; padding: 8px 16px; border-radius: var(--radius-sm); z-index: 9999; transition: top var(--transition); }
 .skip-link:focus { top: 16px; }
 
@@ -70,7 +79,7 @@ input { font-family: inherit; }
 /* ── HEADER ── */
 .site-header { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 16px 0; transition: var(--transition); backdrop-filter: blur(20px); background: rgba(10,10,26,0.8); border-bottom: 1px solid transparent; }
 .site-header.scrolled { border-bottom-color: var(--border-color); }
-.header-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; }
+.header-inner { max-width: 1200px; margin: 0 auto; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; position: relative; }
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-icon { color: var(--accent-1); display: flex; }
 .logo-text { font-family: var(--font-display); font-weight: 700; font-size: 1.4rem; background: var(--gradient-1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }

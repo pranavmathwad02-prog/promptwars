@@ -1,5 +1,5 @@
 /* ── HERO ── */
-.hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; position: relative; }
+.hero { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 120px 24px 80px; text-align: center; position: relative; overflow: hidden; }
 .hero-content { max-width: 800px; }
 .hero-badge { display: inline-block; padding: 8px 20px; background: var(--bg-glass); border: 1px solid var(--border-color); border-radius: var(--radius-xl); font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 24px; animation: fadeInDown 0.8s ease; }
 .hero-title { font-family: var(--font-display); font-size: clamp(2.5rem, 6vw, 4.5rem); font-weight: 900; line-height: 1.1; margin-bottom: 24px; animation: fadeInUp 0.8s ease; }
@@ -15,7 +15,7 @@
 @keyframes fadeInDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
 
 /* ── OVERVIEW CARDS ── */
-.overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 24px; }
+.overview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 24px; }
 .overview-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 32px; transition: var(--transition); position: relative; overflow: hidden; }
 .overview-card::before { content: ''; position: absolute; inset: 0; background: var(--gradient-1); opacity: 0; transition: var(--transition); }
 .overview-card:hover { transform: translateY(-4px); border-color: var(--border-glow); box-shadow: var(--shadow-glow); }

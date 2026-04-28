@@ -64,7 +64,13 @@
 /* ── RESPONSIVE ADDITIONS ── */
 @media (max-width: 768px) {
     .register-layout { grid-template-columns: 1fr; }
-    .candidates-grid { grid-template-columns: 1fr; }
+    .candidates-grid { grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr)); }
     .candidates-filters { gap: 6px; }
     .cand-filter { padding: 6px 14px; font-size: 0.8rem; }
+    .register-form-card { padding: 24px; }
+}
+@media (max-width: 480px) {
+    .candidates-grid { grid-template-columns: 1fr; }
+    .register-form-card { padding: 20px 16px; }
+    .register-form-card h3 { font-size: 1.2rem; }
 }

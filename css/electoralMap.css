@@ -206,3 +206,21 @@
     from { opacity: 0; transform: translateX(20px); }
     to { opacity: 1; transform: translateX(0); }
 }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .electoral-map-section { padding: 60px 0; }
+    .map-info-card {
+        position: static;
+        padding: 20px;
+    }
+    .map-svg-wrapper { padding: 16px; min-height: unset; }
+    #electoral-leaflet-map { height: 360px !important; }
+    .state-stats-grid { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 480px) {
+    #electoral-leaflet-map { height: 280px !important; }
+    .map-svg-wrapper { padding: 8px; }
+    .state-stats-grid { grid-template-columns: 1fr; }
+    .map-info-card { padding: 16px; }
+}

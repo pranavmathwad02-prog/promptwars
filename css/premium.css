@@ -84,6 +84,12 @@ html[data-theme="light"] {
     --text-secondary: #555570;
     --text-dim: #888898;
     --border-color: rgba(0,0,0,0.1);
+    /* Aliases */
+    --accent-primary: #6366f1;
+    --accent-secondary: #a855f7;
+    --accent-primary-glow: rgba(99,102,241,0.1);
+    --bg-tertiary: rgba(0,0,0,0.05);
+    --card-bg: rgba(0,0,0,0.04);
 }
 html[data-theme="light"] .ambient-orb { opacity: 0.08; }
 html[data-theme="light"] .site-header { background: rgba(245,245,250,0.85); }

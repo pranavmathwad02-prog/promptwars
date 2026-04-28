@@ -96,7 +96,15 @@
 @media (max-width: 768px) {
     .nav-list { display: none; }
     .mobile-toggle { display: flex; }
-    .main-nav.open .nav-list { display: flex; flex-direction: column; position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); padding: 16px; }
+    .main-nav.open .nav-list {
+        display: flex; flex-direction: column;
+        position: absolute; top: 100%; left: 0; right: 0;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px; z-index: 200;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        max-height: 80vh; overflow-y: auto;
+    }
     .hero-stats { gap: 24px; }
     .overview-grid { grid-template-columns: 1fr; }
     .timeline-line { left: 20px; }
@@ -108,15 +116,33 @@
     .steps-nav { min-width: 100%; flex-direction: row; overflow-x: auto; gap: 4px; padding-bottom: 8px; }
     .step-tab { white-space: nowrap; padding: 10px 14px; font-size: 0.8rem; }
     .step-tab span:not(.step-tab-num) { display: none; }
-    .steps-content { padding: 24px; }
+    .steps-content { padding: 20px; min-height: unset; }
+    .step-meta { flex-direction: column; gap: 12px; }
     .footer-content { flex-direction: column; gap: 32px; }
     .footer-links { gap: 40px; }
     .chat-container { height: 480px; }
     .message-content { max-width: 85%; }
+    .chat-suggestions { padding: 8px 16px; }
+    .chat-input-area { padding: 12px 16px; gap: 8px; }
+    .section { padding: 80px 0; }
+    .section-header { margin-bottom: 40px; }
 }
 @media (max-width: 480px) {
-    .hero-title { font-size: 2rem; }
+    .hero { padding: 100px 16px 60px; }
+    .hero-title { font-size: clamp(1.8rem, 8vw, 2.5rem); }
+    .hero-subtitle { font-size: 1rem; }
+    .hero-actions { flex-direction: column; align-items: center; gap: 12px; }
+    .hero-actions .btn { width: 100%; max-width: 280px; justify-content: center; }
     .hero-stats { flex-direction: column; gap: 16px; }
     .section { padding: 60px 0; }
-    .steps-content { min-height: 300px; }
+    .section-title { font-size: clamp(1.6rem, 6vw, 2.5rem); }
+    .steps-content { min-height: 300px; padding: 16px; }
+    .step-content-title { font-size: 1.4rem; }
+    .footer-links { flex-direction: column; gap: 24px; }
+    .chat-container { height: 420px; }
+    .timeline-controls { flex-direction: column; align-items: stretch; gap: 8px; }
+    .timeline-filter { text-align: center; }
+    .quiz-active { padding: 20px 16px; }
+    .quiz-start { padding: 40px 16px; }
+    .quiz-results { padding: 32px 16px; }
 }
