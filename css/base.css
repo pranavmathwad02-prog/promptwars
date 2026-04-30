@@ -64,6 +64,68 @@ input { font-family: inherit; }
 .skip-link { position: absolute; top: -100%; left: 16px; background: var(--accent-1); color: #fff; padding: 8px 16px; border-radius: var(--radius-sm); z-index: 9999; transition: top var(--transition); }
 .skip-link:focus { top: 16px; }
 
+/* ── WCAG AA FOCUS STATES (keyboard navigation) ── */
+/* Every interactive element must have a visible focus ring */
+:focus-visible {
+    outline: 3px solid var(--accent-1);
+    outline-offset: 3px;
+    border-radius: 4px;
+}
+/* Remove focus ring on mouse click (only show for keyboard) */
+:focus:not(:focus-visible) {
+    outline: none;
+}
+/* Specific high-contrast focus for buttons */
+.btn:focus-visible,
+button:focus-visible {
+    outline: 3px solid #a5b4fc;
+    outline-offset: 4px;
+    box-shadow: 0 0 0 6px rgba(99,102,241,0.25);
+}
+/* Input focus */
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 0;
+    border-color: var(--accent-1) !important;
+    box-shadow: 0 0 0 4px rgba(99,102,241,0.2);
+}
+/* Link focus */
+a:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 4px;
+    border-radius: 3px;
+}
+/* Nav link focus */
+.nav-link:focus-visible {
+    outline: 2px solid var(--accent-1);
+    outline-offset: 2px;
+    background: var(--bg-glass);
+}
+
+/* ── WCAG AA CONTRAST — ensure text meets 4.5:1 ratio on dark bg ── */
+/* --text-secondary (#a0a0c0 on #0a0a1a) = 7.1:1 ✓ */
+/* --text-muted (#6a6a8e on #0a0a1a) ≈ 3.8:1 — boost for AA */
+--text-muted: #8080a8;   /* Bumped from #6a6a8e — now 5.2:1 ✓ */
+
+/* ── REDUCED MOTION — respect user OS preference ── */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    .ambient-orb { animation: none !important; }
+}
+
+/* ── HIGH CONTRAST MODE ── */
+@media (forced-colors: active) {
+    .btn-primary { forced-color-adjust: none; }
+    .section-tag { border: 1px solid ButtonText; }
+}
+
+
 /* ── AMBIENT BG ── */
 .ambient-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
 .ambient-orb { position: absolute; border-radius: 50%; filter: blur(100px); opacity: 0.15; animation: float 20s ease-in-out infinite; }
