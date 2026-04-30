@@ -3,36 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Interactive Election Process Education Assistant — Learn about the U.S. election process, timelines, voter registration, and civic participation step-by-step.">
+    <meta name="description" content="ElectEd — AI-powered interactive platform to master the U.S. election process, timelines, voter registration, and civic participation.">
     <meta name="keywords" content="election process, voting guide, civic education, voter registration, election timeline, democracy, Electoral College">
     <meta name="author" content="ElectEd">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdnjs.cloudflare.com https://generativelanguage.googleapis.com https://www.gstatic.com https://www.googletagmanager.com https://maps.googleapis.com https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://raw.githubusercontent.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org https://*.firebaseio.com https://*.googleapis.com https://*.google-analytics.com https://maps.googleapis.com https://translate.googleapis.com; frame-ancestors 'none';">
-    <meta name="theme-color" content="#0f172a">
-    
-    <!-- Open Graph / Facebook -->
+    <meta name="theme-color" content="#6366f1">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://generativelanguage.googleapis.com https://www.gstatic.com https://www.googletagmanager.com https://maps.googleapis.com https://translate.google.com https://translate.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://translate.googleapis.com https://unpkg.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://generativelanguage.googleapis.com https://*.googleapis.com https://*.google-analytics.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://nominatim.openstreetmap.org; frame-ancestors 'none'; object-src 'none'; base-uri 'self';">
+
+    <!-- Open Graph -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://elected-demo.web.app/">
     <meta property="og:title" content="ElectEd — Interactive Election Process Education Assistant">
     <meta property="og:description" content="Master the U.S. election process with our interactive, AI-powered educational toolkit.">
     <meta property="og:image" content="https://elected-demo.web.app/og-image.jpg">
 
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://elected-demo.web.app/">
-    <meta property="twitter:title" content="ElectEd — Interactive Election Process Education Assistant">
-    <meta property="twitter:description" content="Master the U.S. election process with our interactive, AI-powered educational toolkit.">
-    <meta property="twitter:image" content="https://elected-demo.web.app/og-image.jpg">
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://elected-demo.web.app/">
+    <meta name="twitter:title" content="ElectEd — Interactive Election Process Education Assistant">
+    <meta name="twitter:description" content="Master the U.S. election process with our interactive, AI-powered educational toolkit.">
+    <meta name="twitter:image" content="https://elected-demo.web.app/og-image.jpg">
 
-    <!-- Favicon -->
+    <!-- Favicon & PWA -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗳️</text></svg>">
     <link rel="manifest" href="manifest.json">
     <title>ElectEd — Interactive Election Process Education Assistant</title>
-    <meta name="description" content="ElectEd is an advanced, AI-powered interactive educational platform designed to help you master the U.S. Election process, electoral maps, and voter registration." />
-    <meta name="keywords" content="election, voting, electoral college, democracy, AI assistant, voter registration" />
-    <meta name="author" content="ElectEd" />
-    <meta property="og:title" content="ElectEd — Interactive Election Assistant" />
-    <meta property="og:description" content="Master the U.S. Election process with this high-end interactive educational platform." />
-    <meta property="og:type" content="website" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -42,22 +36,35 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics-compat.js"></script>
     <script>
+      // Firebase is optional — only initialise if a real project config is set.
+      // Replace these placeholder values with your actual Firebase project config.
+      // Get yours at: https://console.firebase.google.com/
       const firebaseConfig = {
-        apiKey: "AIzaSyB3JkL0mN1pQ2rS3tU4vW5xY6z7a8b9c0",
-        authDomain: "elected-edu-platform.firebaseapp.com",
-        projectId: "elected-edu-platform",
-        storageBucket: "elected-edu-platform.appspot.com",
-        messagingSenderId: "987654321012",
-        appId: "1:987654321012:web:a1b2c3d4e5f6g7h8i9j0",
-        measurementId: "G-7P2W8E5X4Z"
+        apiKey: "REPLACE_WITH_YOUR_FIREBASE_API_KEY",
+        authDomain: "REPLACE_WITH_YOUR_PROJECT.firebaseapp.com",
+        projectId: "REPLACE_WITH_YOUR_PROJECT_ID",
+        storageBucket: "REPLACE_WITH_YOUR_PROJECT.appspot.com",
+        messagingSenderId: "REPLACE_WITH_YOUR_SENDER_ID",
+        appId: "REPLACE_WITH_YOUR_APP_ID",
+        measurementId: "REPLACE_WITH_YOUR_MEASUREMENT_ID"
       };
-      if (window.firebase) {
-        firebase.initializeApp(firebaseConfig);
-        firebase.analytics();
-        window.db = firebase.firestore(); // Firestore initialized
+      // Only initialise if real keys are present and Firebase SDK is loaded
+      const _fbKeyIsReal = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith('REPLACE_');
+      if (window.firebase && _fbKeyIsReal) {
+        try {
+          firebase.initializeApp(firebaseConfig);
+          firebase.analytics();
+          window.db = firebase.firestore();
+          console.info('[Firebase] Initialised successfully.');
+        } catch (e) {
+          console.warn('[Firebase] Init failed — running without Firebase:', e.message);
+        }
+      } else if (!_fbKeyIsReal) {
+        console.info('[Firebase] Placeholder config detected — skipping init. Add real keys to enable.');
       }
+
       function initMap() {
-        console.info('Google Maps API loaded.');
+        console.info('[GoogleMaps] API loaded.');
         window.googleMapReady = true;
       }
     </script>
@@ -85,10 +92,8 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- Google Gemini API Key Configuration -->
-    <!-- config.js is gitignored — safe for public repos -->
-    <script>window.GEMINI_API_KEY = null;</script>
-    <script src="config.js" onerror="console.info('config.js not found — chatbot using local knowledge base.')"></script>
+    <!-- Gemini API Key: set in config.js (gitignored). Default is null (uses local fallback). -->
+    <script src="config.js" onerror="console.info('[ElectEd] config.js not found — chatbot using local knowledge base.')"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 </head>
 <body>
@@ -139,7 +144,7 @@
                 <div class="logo-icon" aria-hidden="true">
                     <svg width="28" height="28" viewBox="0 0 32 32" fill="none"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                 </div>
-                <h1 class="logo-text">ElectEd</h1>
+                <span class="logo-text" role="img" aria-label="ElectEd home">ElectEd</span>
             </div>
             
             <div class="header-actions">
@@ -270,7 +275,7 @@
                                 </div>
                                 <ul class="state-rules-list" id="state-rules"></ul>
                             </div>
-                        </aside>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -629,13 +634,7 @@
       gtag('config', 'G-7P2W8E5X4Z');
     </script>
 
-    <!-- Google Translate API -->
-    <script type="text/javascript">
-      function googleTranslateElementInit() {
-        new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'af,sq,am,ar,hy,az,eu,be,bn,bs,bg,ca,ceb,ny,zh-CN,zh-TW,co,hr,cs,da,nl,en,eo,et,tl,fi,fr,fy,gl,ka,de,el,gu,ht,ha,haw,iw,hi,hmn,hu,is,ig,id,ga,it,ja,jw,kn,kk,km,ko,ku,ky,lo,la,lv,lt,lb,mk,mg,ms,ml,mt,mi,mr,mn,my,ne,no,ps,fa,pl,pt,ma,ro,ru,sm,gd,sr,st,sn,sd,si,sk,sl,so,es,su,sw,sv,tg,ta,te,th,tr,uk,ur,uz,vi,cy,xh,yi,yo,zu', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
-      }
-    </script>
-    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <!-- Google Translate loaded once in <head> — duplicate removed -->
 
     <!-- Back to Top Button -->
     <button class="back-to-top" id="back-to-top" aria-label="Back to top" title="Scroll to top">

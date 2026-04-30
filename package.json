@@ -1,12 +1,12 @@
 {
   "name": "elected-election-education",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "ElectEd — Interactive Election Process Education Assistant",
   "main": "js/app.js",
   "scripts": {
-    "test": "jest --coverage --verbose",
-    "test:watch": "jest --watch",
-    "test:ci": "jest --coverage --ci --reporters=default",
+    "test": "jest --coverage --verbose --forceExit",
+    "test:watch": "jest --watch --forceExit",
+    "test:ci": "jest --coverage --ci --forceExit --detectOpenHandles --reporters=default",
     "serve": "python serve.py"
   },
   "jest": {

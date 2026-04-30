@@ -1,10 +1,18 @@
-# Secret config — API keys, never upload this
+# Secret config — API keys, NEVER commit this file
 config.js
 
-# Node modules (if using Jest tests)
+# SQLite database (local dev data, never commit)
+elected.db
+
+# Node modules & Jest coverage (if using unit tests)
 node_modules/
 coverage/
 
-# OS files
+# OS-generated files
 .DS_Store
 Thumbs.db
+*.log
+
+# Python cache
+__pycache__/
+*.pyc

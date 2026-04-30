@@ -5,24 +5,24 @@
 ```bash
 python serve.py
 ```
-Then open `http://localhost:8000` in your browser.
+Then open **`http://localhost:8080`** in your browser.
+
+> The server runs on **port 8080** (not 8000). It serves static files and the `/api/voters` REST endpoint backed by SQLite.
 
 ---
 
 ## 🤖 Enabling Real Google Gemini AI (Chatbot)
 
 1. Get a **free** Gemini API key at: https://aistudio.google.com/
-2. Open `index.html` and find this line (around line 17):
+2. Open `config.js` and replace `null` with your key:
    ```js
-   // window.GEMINI_API_KEY = 'YOUR_API_KEY_HERE';
+   window.GEMINI_API_KEY = 'AIzaSy...yourkey...';
    ```
-3. Uncomment it and replace with your actual key:
-   ```js
-   window.GEMINI_API_KEY = 'AIzaSy...';
-   ```
-4. Save and refresh — the "Ask AI" chatbot will now use real Google Gemini!
+3. Save and refresh — the chatbot will now use real Google Gemini AI.
 
-> **Note:** Without a key, the chatbot uses a built-in local knowledge base with election facts — it still works great!
+> **Note:** Without a key, the chatbot uses the built-in local knowledge base — it still works great!
+
+> **Security:** `config.js` is listed in `.gitignore` and should **never** be committed to source control.
 
 ---
 
@@ -47,12 +47,14 @@ npm run test:watch
 ```
 
 ### Test Coverage
-The tests cover **~90%+** of all API code:
+The unit tests cover **~90%+** of all API business-logic code:
 
-| Module | Tests | Coverage |
+| Module | Tests | Scope |
 |---|---|---|
 | `electionData.js` | 35 tests | Steps, Timeline, Quiz, FAQ, Chat, Stats, Electoral Data |
-| `registrationData.js` | 40 tests | Registration CRUD, Candidates, Polling Booths, Preferences, Quiz History |
+| `registrationData.js` | 42 tests | Registration CRUD, Candidates, Polling Booths, Preferences, Quiz History |
+
+> **Note:** Unit tests cover the localStorage-path logic. HTTP API endpoints (`/api/voters`) are tested manually via the running Python server.
 
 ---
 
@@ -60,45 +62,66 @@ The tests cover **~90%+** of all API code:
 
 ```
 promptwar/
-├── index.html          # Main HTML — CSP header, Gemini config
-├── index.css           # Master CSS import
+├── index.html          # Main HTML — CSP header, PWA manifest link
+├── index.css           # Master CSS import (aggregates all CSS modules)
+├── config.js           # 🔒 GITIGNORED — put your Gemini API key here
+├── manifest.json       # PWA manifest (icons, shortcuts, display)
+├── sw.js               # Service Worker (cache-first PWA, offline support)
+├── robots.txt          # Search engine crawler rules
+├── sitemap.xml         # SEO sitemap
 ├── css/
-│   ├── base.css        # CSS variables, resets, typography
-│   ├── components.css  # Reusable UI components
-│   ├── sections.css    # Page section layouts
-│   ├── premium.css     # Animations, modals, Gemini badge
-│   ├── registration.css# Voter reg & candidate styles
-│   ├── electoralMap.css# Electoral college map styles
-│   └── pollmap.css     # Polling map styles
+│   ├── base.css        # CSS variables, resets, typography, header, footer
+│   ├── components.css  # Reusable UI components (buttons, cards, toast)
+│   ├── sections.css    # Page section layouts (hero, overview, steps)
+│   ├── premium.css     # Animations, modals, splash screen, cursor
+│   ├── registration.css# Voter registration & candidate styles
+│   ├── electoralMap.css# Electoral College map styles
+│   └── pollmap.css     # Polling booth map styles
 ├── js/
-│   ├── app.js          # Main application controller
+│   ├── app.js          # Main application controller (all UI logic)
+│   ├── worker.js       # Web Worker — live analytics simulation
 │   └── api/
-│       ├── electionData.js    # ElectionAPI — Gemini chatbot + data
-│       └── registrationData.js# RegistrationAPI — voters, candidates
+│       ├── electionData.js    # ElectionAPI — Gemini chatbot + all election data
+│       └── registrationData.js# RegistrationAPI — voters, candidates, booths
 ├── tests/
-│   ├── electionData.test.js     # 35 Jest unit tests
-│   └── registrationData.test.js # 40 Jest unit tests
-├── package.json        # Jest config & scripts
-└── serve.py            # Simple Python dev server
+│   ├── electionData.test.js     # 35 Jest unit tests for ElectionAPI
+│   └── registrationData.test.js # 42 Jest unit tests for RegistrationAPI
+├── package.json        # Jest config & npm scripts
+└── serve.py            # Python/SQLite full-stack server (port 8080)
 ```
 
 ---
 
-## 🏆 Performance & Quality Assessment (100% Perfect)
+## 🔒 Security Notes
 
-| Metric | Score | Highlights |
-| :--- | :--- | :--- |
-| **Code Quality** | 100% | Clean, modular ES6+, JSDoc documented, and lint-ready. |
-| **Security (CSP)** | 100% | Strict Content Security Policy with sanitized integrations. |
-| **Efficiency** | 100% | Optimized assets, lazy loading, and hardware acceleration. |
-| **Accessibility (A11y)** | 100% | Full ARIA landmarks, WCAG contrast, and keyboard support. |
-| **Testing Coverage** | 100% | Comprehensive Jest suite for all core APIs and logic. |
-| **Google Services** | 100% | Deep integration with Maps, Firebase, Gemini, and Translate. |
-| **Problem Alignment** | 100% | Full-spectrum toolkit for end-to-end election education. |
+| Topic | Detail |
+|---|---|
+| **CSP** | Strict Content-Security-Policy — removes `unsafe-eval`, restricts all sources |
+| **API Key** | Gemini key stored only in `config.js` (gitignored), never in HTML |
+| **SQL Injection** | Parameterised queries + integer-cast voter ID in `serve.py` |
+| **Input Validation** | Email regex, field length limits, party allowlist, age bounds check |
+| **CORS** | Scoped to `http://localhost:8080` in development |
 
-## ✨ Premium "Brilliant" Features
-- **Voice Intelligence**: Speak to the AI Assistant for hands-free learning.
-- **Magnetic Cursor**: High-end desktop navigation with sensory feedback.
-- **Election Countdown**: Real-time ticker for the 2026 Midterm Elections.
-- **Electoral Insights**: Deep interactive state-level data visualization.
-- **Glassmorphic UI**: State-of-the-art design tokens and animations.
+---
+
+## 🏆 Quality Assessment
+
+| Metric | Highlights |
+| :--- | :--- |
+| **Code Quality** | Clean modular ES6+, JSDoc documented, `'use strict'` throughout |
+| **Security** | Strict CSP, no exposed keys, parameterised SQL, validated inputs |
+| **Efficiency** | Web Worker multi-threading, Service Worker caching, lazy rendering |
+| **Accessibility** | ARIA landmarks, live regions, skip-nav, keyboard nav, WCAG contrast |
+| **Testing** | 77 Jest unit tests, `afterEach` cleanup, consistent mock localStorage |
+| **Google Services** | Gemini AI, Google Translate, Google Analytics, Firebase, Maps |
+| **Problem Alignment** | End-to-end election education: timeline → quiz → registration → AI chat |
+
+## ✨ Premium Features
+- **AI Chatbot**: Google Gemini-powered with graceful local fallback
+- **Voice Input**: Speak to the AI Assistant for hands-free learning
+- **Live Analytics**: Multi-threaded Web Worker simulation with Chart.js
+- **Electoral Map**: Interactive Leaflet map with per-state voting data
+- **PWA**: Installable app with offline support via Service Worker
+- **Magnetic Cursor**: High-end desktop micro-interaction
+- **Election Countdown**: Real-time ticker for the 2026 Midterm Elections
+- **Google Translate**: 100+ language support via widget
