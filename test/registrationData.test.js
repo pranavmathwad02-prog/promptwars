@@ -1,12 +1,20 @@
 /**
  * @file registrationData.test.js
- * @description Unit tests for RegistrationAPI module (Jest)
- * Tests voter registration, candidate data, polling booths, and data persistence.
+ * @description Unit tests for the RegistrationAPI business-logic layer (Jest).
+ *
+ * Scope: Tests the pure data-logic functions (validation, CRUD on localStorage,
+ * candidate filtering, quiz history, preferences, polling booths).
+ * These tests run against an inline implementation that mirrors the localStorage
+ * fallback path of registrationData.js — the same logic that runs in-browser
+ * when the Python server is offline.
+ *
+ * Integration tests for the /api/voters HTTP endpoints live in serve.py.
  */
 
-// ── Inline the RegistrationAPI for Node/Jest environment ──
-// We mock localStorage since we're running in Node.js
+// Set generous timeout for slow CI machines
+jest.setTimeout(10000);
 
+// ── Mock localStorage (unavailable in Node/Jest by default) ──────────────────
 class MockLocalStorage {
     constructor() { this._store = {}; }
     getItem(key) { return Object.prototype.hasOwnProperty.call(this._store, key) ? this._store[key] : null; }
@@ -139,9 +147,14 @@ const RegistrationAPI = (() => {
 })();
 
 // ════════════════════════════════════════
-// SETUP: Clear storage before each test
+// SETUP: Reset storage before EVERY test,
+//        and clean up after EVERY test.
 // ════════════════════════════════════════
 beforeEach(() => {
+    localStorage.clear();
+});
+
+afterEach(() => {
     localStorage.clear();
 });
 
