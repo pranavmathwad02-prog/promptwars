@@ -505,24 +505,45 @@ Response Guidelines:
          */
         async chat(message) {
             if (!message || typeof message !== 'string' || !message.trim()) {
-                return { success: true, response: "Please ask me a question about the election process!", source: 'local' };
+                return { success: true, response: 'Please ask me a question about the election process!', source: 'local' };
             }
-            // Guard against excessively long messages
-            const sanitised = message.trim().slice(0, 500);
 
-            // Use Gemini API if a key is available
+            // Client-side XSS sanitisation: strip HTML tags before sending
+            const sanitised = String(message).replace(/<[^>]+>/g, '').trim().slice(0, 500);
+
+            // ── STRATEGY 1: Python backend /api/chat (Gemini with system instructions) ──
+            // Only attempts when running on localhost (same-origin server)
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ message: sanitised }),
+                        signal: AbortSignal.timeout(8000)
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success && data.response) {
+                            return { success: true, response: data.response, source: data.source || 'backend' };
+                        }
+                    }
+                } catch (_) {
+                    // Server unreachable — fall through to next strategy
+                }
+            }
+
+            // ── STRATEGY 2: Direct Gemini API (if key is set in config.js) ──
             if (GEMINI_API_KEY && GEMINI_ENDPOINT) {
                 try {
                     const response = await _callGeminiAPI(sanitised);
                     return { success: true, response, source: 'gemini' };
                 } catch (err) {
-                    console.warn('[ElectionAPI] Gemini API error, falling back to local knowledge:', err.message);
-                    return { success: true, response: _localChatFallback(sanitised), source: 'local-fallback' };
+                    console.warn('[ElectionAPI] Gemini API error, using local fallback:', err.message);
                 }
             }
 
-            // Offline / no-key: use local knowledge base
-            await _delay(300 + Math.random() * 400);
+            // ── STRATEGY 3: Local knowledge base fallback (always works offline) ──
+            await _delay(300 + Math.random() * 300);
             return { success: true, response: _localChatFallback(sanitised), source: 'local' };
         },
         /**
