@@ -64,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
         safeInit(() => initCandidates(), "Candidates");
         safeInit(() => initRegistration(), "Registration");
         safeInit(() => initPollingMap(), "Polling Map");
-        safeInit(() => initElectoralMap(), "Electoral Map");
         safeInit(() => initScrollProgress(), "ScrollProgress");
         safeInit(() => initThemeToggle(), "Theme");
         safeInit(() => initBackToTop(), "BackToTop");
@@ -539,6 +538,7 @@ function initChat() {
 
     suggestions.forEach(chip => {
         chip.addEventListener('click', () => {
+            if (!chip.dataset.question) return; // Skip clear-chat and other non-question chips
             sendMessage(chip.dataset.question);
         });
     });
@@ -1212,17 +1212,18 @@ async function renderPartyChart() {
 // POLLING BOOTH MAP MODULE
 // ══════════════════════════════════════
 /**
- * Initializes the interactive Leaflet map for polling locations.
- * Uses lazy-loading via IntersectionObserver and provides search/filter functionality.
+ * Initializes the Leaflet map for polling locations.
+ * Uses lazy-loading and provides search/filter functionality.
  * @returns {void}
  */
 function initPollingMap() {
     const mapEl = document.getElementById('polling-map');
-    if (!mapEl) return;
+    if (!mapEl || typeof L === 'undefined') return;
 
     let map = null;
     let markers = [];
     let initialized = false;
+    let userMarker = null;
 
     // Lazy init: only create map when section is scrolled into view
     const observer = new IntersectionObserver((entries) => {
@@ -1234,38 +1235,27 @@ function initPollingMap() {
     }, { threshold: 0.1 });
     observer.observe(mapEl.closest('.pollmap-section'));
 
-    async function setupMap() {
-        // Wait for Google Maps API to be ready
-        while (!window.google || !window.google.maps) {
-            await new Promise(r => setTimeout(r, 100));
-        }
-
-        // Create map centered on the US with premium dark theme
-        const darkMapStyle = [
-            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-            { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-            { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-            { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
-            { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
-            { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-            { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-            { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-            { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
-            { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
-            { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
-            { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-            { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-            { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] }
-        ];
-
-        map = new google.maps.Map(mapEl, {
-            center: { lat: 39.8283, lng: -98.5795 },
+    function setupMap() {
+        // Leaflet map centered on the US — no API key required
+        map = L.map('polling-map', {
+            center: [39.8283, -98.5795],
             zoom: 4,
-            styles: darkMapStyle,
-            disableDefaultUI: true,
-            zoomControl: true,
+            scrollWheelZoom: false,
+            zoomControl: true
+        });
+
+        // Dark CartoDB tile layer (matches the app's dark theme)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/">CARTO</a>',
+            maxZoom: 19
+        }).addTo(map);
+
+        // Custom green circle icon for polling stations
+        const pollingIcon = L.divIcon({
+            className: '',
+            html: '<div style="width:14px;height:14px;background:#10b981;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(16,185,129,0.6);"></div>',
+            iconSize: [14, 14],
+            iconAnchor: [7, 7]
         });
 
         // Populate state filter dropdown
@@ -1277,50 +1267,48 @@ function initPollingMap() {
             stateSelect.appendChild(opt);
         });
 
-        // Load and render booths
-        await loadBooths();
+        // Load initial booths
+        loadBooths(pollingIcon);
 
-        // Search handler
+        // Search with debounce
         const searchInput = document.getElementById('pollmap-search-input');
         let searchTimeout;
         searchInput.addEventListener('input', () => {
             clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => loadBooths(), 300);
+            searchTimeout = setTimeout(() => loadBooths(pollingIcon), 300);
         });
 
-        // State filter handler
-        stateSelect.addEventListener('change', () => loadBooths());
+        stateSelect.addEventListener('change', () => loadBooths(pollingIcon));
 
-        // Locate me button
+        // Locate me — uses browser geolocation
         document.getElementById('btn-locate-me').addEventListener('click', () => {
             if (!navigator.geolocation) {
-                showToast('\u26a0\ufe0f', 'Geolocation not supported', 'Your browser does not support location services.', 'error');
+                showToast('⚠️', 'Geolocation not supported', 'Your browser does not support location services.', 'error');
                 return;
             }
-            showToast('\ud83d\udccd', 'Finding your location...', '', 'info');
+            showToast('📍', 'Finding your location...', '', 'info');
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
                     const { latitude, longitude } = pos.coords;
-                    map.setCenter({ lat: latitude, lng: longitude });
-                    map.setZoom(10);
-                    // Add user marker
-                    const userMarker = new google.maps.Marker({
-                        position: { lat: latitude, lng: longitude },
-                        map: map,
-                        title: 'Your Location'
-                    });
-                    const infoWindow = new google.maps.InfoWindow({ content: '<strong>Your Location</strong>' });
-                    infoWindow.open(map, userMarker);
-                    showToast('\u2705', 'Location found!', 'Map centered on your position.', 'success');
+                    map.setView([latitude, longitude], 11);
+                    if (userMarker) userMarker.remove();
+                    userMarker = L.circleMarker([latitude, longitude], {
+                        radius: 10,
+                        fillColor: '#6366f1',
+                        color: '#fff',
+                        weight: 2,
+                        fillOpacity: 0.9
+                    }).addTo(map).bindPopup('<strong>📍 Your Location</strong>').openPopup();
+                    showToast('✅', 'Location found!', 'Map centered on your position.', 'success');
                 },
                 () => {
-                    showToast('\u274c', 'Location access denied', 'Please enable location permissions.', 'error');
+                    showToast('❌', 'Location access denied', 'Please enable location permissions.', 'error');
                 }
             );
         });
     }
 
-    async function loadBooths() {
+    async function loadBooths(pollingIcon) {
         if (!map) return;
         const search = document.getElementById('pollmap-search-input').value;
         const state = document.getElementById('pollmap-state-select').value;
@@ -1332,7 +1320,7 @@ function initPollingMap() {
         if (!res.success) return;
 
         // Clear existing markers
-        markers.forEach(m => m.setMap(null));
+        markers.forEach(m => m.remove());
         markers = [];
 
         const booths = res.data;
@@ -1343,466 +1331,227 @@ function initPollingMap() {
             return;
         }
 
-        const bounds = new google.maps.LatLngBounds();
+        const bounds = L.latLngBounds();
 
-        // Add markers
         booths.forEach(b => {
-            const position = { lat: b.lat, lng: b.lng };
-            const marker = new google.maps.Marker({
-                position: position,
-                map: map,
-                title: b.name
-            });
-            bounds.extend(position);
-            
-            const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${b.name} ${b.address} ${b.city} ${b.state}`)}`;
-            const popupContent = '<div class="poll-popup-name">' + b.name + '</div>' +
+            const latlng = [b.lat, b.lng];
+            const gMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(b.name + ' ' + b.address + ' ' + b.city + ' ' + b.state)}`;
+
+            const popup = L.popup({ maxWidth: 260 }).setContent(
+                '<div class="poll-popup-name">' + b.name + '</div>' +
                 '<div class="poll-popup-address">' + b.address + ', ' + b.city + ', ' + b.state + '</div>' +
-                '<div class="poll-popup-hours">\ud83d\udd52 ' + b.hours + '</div>' +
+                '<div class="poll-popup-hours">🕒 ' + b.hours + '</div>' +
                 '<span class="poll-popup-status ' + b.status + '">' + b.status + '</span>' +
-                (b.accessible ? ' <span style="font-size:0.75rem;color:var(--text-dim);">\u267f Accessible</span>' : '') +
-                '<div style="margin-top:10px;"><a href="' + gMapsUrl + '" target="_blank" style="color:var(--accent-primary);font-size:0.8rem;font-weight:600;display:inline-flex;align-items:center;gap:4px;">\ud83d\uddfa\ufe0f Open in Google Maps</a></div>';
-            
-            const infoWindow = new google.maps.InfoWindow({ content: popupContent });
-            marker.addListener('click', () => {
-                infoWindow.open(map, marker);
+                (b.accessible ? ' <span style="font-size:0.75rem;color:#6b7280;">♿ Accessible</span>' : '') +
+                '<div style="margin-top:10px;"><a href="' + gMapsUrl + '" target="_blank" rel="noopener noreferrer" style="color:#6366f1;font-size:0.8rem;font-weight:600;">🗺️ Open in Google Maps</a></div>'
+            );
+
+            const fallbackIcon = L.divIcon({
+                className: '',
+                html: '<div style="width:14px;height:14px;background:#10b981;border:2px solid #fff;border-radius:50%;box-shadow:0 0 6px rgba(16,185,129,0.6);"></div>',
+                iconSize: [14, 14],
+                iconAnchor: [7, 7]
             });
+            const icon = (typeof pollingIcon !== 'undefined') ? pollingIcon : fallbackIcon;
+
+            const marker = L.marker(latlng, { icon }).addTo(map).bindPopup(popup);
             marker._boothId = b.id;
-            marker._infoWindow = infoWindow;
+            bounds.extend(latlng);
             markers.push(marker);
         });
 
-        // Fit bounds if filtered
-        if (booths.length > 0 && (filter.search || filter.state)) {
-            map.fitBounds(bounds);
+        // Fit map to results when filtered
+        if (filter.search || filter.state) {
+            map.fitBounds(bounds, { padding: [40, 40] });
         }
 
         // Render sidebar list
-        listEl.innerHTML = booths.map(b => {
-            const statusClass = b.status;
-            return '<div class="pollmap-booth-item" data-booth-id="' + b.id + '" data-lat="' + b.lat + '" data-lng="' + b.lng + '">' +
-                '<div class="booth-item-name">' + b.name + '</div>' +
-                '<div class="booth-item-address">' + b.address + ', ' + b.city + '</div>' +
-                '<div class="booth-item-meta">' +
-                '<span class="booth-item-status ' + statusClass + '">' + b.status + '</span>' +
-                '<span class="booth-item-distance">' + b.type + '</span>' +
-                (b.accessible ? '<span>\u267f</span>' : '') +
-                '</div></div>';
-        }).join('');
+        listEl.innerHTML = booths.map(b =>
+            '<div class="pollmap-booth-item" data-booth-id="' + b.id + '" data-lat="' + b.lat + '" data-lng="' + b.lng + '">' +
+            '<div class="booth-item-name">' + b.name + '</div>' +
+            '<div class="booth-item-address">' + b.address + ', ' + b.city + '</div>' +
+            '<div class="booth-item-meta">' +
+            '<span class="booth-item-status ' + b.status + '">' + b.status + '</span>' +
+            '<span class="booth-item-distance">' + b.type + '</span>' +
+            (b.accessible ? '<span>♿</span>' : '') +
+            '</div></div>'
+        ).join('');
 
-        // Sidebar item click -> fly to marker
+        // Sidebar click → fly to marker and open popup
         listEl.querySelectorAll('.pollmap-booth-item').forEach(item => {
             item.addEventListener('click', () => {
                 const lat = parseFloat(item.dataset.lat);
                 const lng = parseFloat(item.dataset.lng);
                 const id = parseInt(item.dataset.boothId);
-                map.panTo({ lat, lng });
-                map.setZoom(13);
-
-                // Highlight sidebar item
+                map.setView([lat, lng], 14, { animate: true });
                 listEl.querySelectorAll('.pollmap-booth-item').forEach(el => el.classList.remove('active'));
                 item.classList.add('active');
-
-                // Open marker popup
                 const marker = markers.find(m => m._boothId === id);
-                if (marker) {
-                    // Close others
-                    markers.forEach(m => { if (m._infoWindow) m._infoWindow.close(); });
-                    marker._infoWindow.open(map, marker);
-                }
+                if (marker) marker.openPopup();
             });
         });
     }
 }
 
+
 // ══════════════════════════════════════
-// ELECTORAL COLLEGE MAP MODULE
+// VERIFICATION MODULE
 // ══════════════════════════════════════
-/**
- * Initializes the interactive Electoral College map.
- * Fetches GeoJSON data and provides state-level data visualization.
- * @returns {void}
- */
-function initElectoralMap() {
-    const mapEl = document.getElementById('electoral-leaflet-map');
-    if (!mapEl || typeof L === 'undefined') return;
+function initVerification() {
+    const verifyForm = document.getElementById('verify-form');
+    const verifyResult = document.getElementById('verify-result');
+    if (!verifyForm) return;
 
-    let map = null;
-    let geoJsonLayer = null;
-    let initialized = false;
+    verifyForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('verify-email').value.toLowerCase().trim();
+        if (!email) return;
 
-    const observer = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !initialized) {
-            initialized = true;
-            setupElectoralMap();
+        verifyResult.innerHTML = '<span style="color:var(--text-muted)">Checking database...</span>';
+        await new Promise(r => setTimeout(r, 600));
+
+        const res = await RegistrationAPI.getRegisteredVoters();
+        const voter = res.data.find(v => v.email === email);
+
+        if (voter) {
+            verifyResult.innerHTML = `<div style="padding:10px; background:rgba(34,197,94,0.1); border-radius:8px; border:1px solid rgba(34,197,94,0.2);"><span style="color:var(--success); font-weight:600;">✅ Verified:</span> <span style="color:var(--text-primary)">${voter.fullName} registered in ${voter.state} (${voter.partyAffiliation})</span></div>`;
+        } else {
+            verifyResult.innerHTML = `<div style="padding:10px; background:rgba(239,68,68,0.1); border-radius:8px; border:1px solid rgba(239,68,68,0.2);"><span style="color:var(--error); font-weight:600;">❌ Not Found:</span> <span style="color:var(--text-primary)">No record matches this email address.</span></div>`;
         }
-    }, { threshold: 0.1 });
-    observer.observe(mapEl);
+    });
+}
 
-    async function setupElectoralMap() {
-        map = L.map('electoral-leaflet-map', {
-            center: [37.8, -96],
-            zoom: 4,
-            zoomControl: true,
-            dragging: !L.Browser.mobile,
-            scrollWheelZoom: false
-        });
-
-        // Add a reset view button
-        const resetControl = L.control({position: 'topleft'});
-        resetControl.onAdd = function () {
-            const div = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
-            div.innerHTML = '<a href="#" title="Reset View" style="font-size:16px;display:flex;align-items:center;justify-content:center;text-decoration:none;padding:4px;">🏠</a>';
-            div.onclick = function(e) {
-                e.preventDefault();
-                map.setView([37.8, -96], 4);
-                showStateInfo(null);
-            };
-            return div;
-        };
-        resetControl.addTo(map);
-
-        // Use a clearer base layer
-        const tileUrl = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
-        L.tileLayer(tileUrl, { maxZoom: 19, opacity: 0.8 }).addTo(map);
-
-        try {
-            // Fetch US States GeoJSON
-            const response = await fetch('https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json');
-            const statesData = await response.json();
-
-            geoJsonLayer = L.geoJson(statesData, {
-                style: (feature) => ({
-                    fillColor: '#6366f1',
-                    weight: 1,
-                    opacity: 1,
-                    color: '#fff',
-                    fillOpacity: 0.3
-                }),
-                onEachFeature: (feature, layer) => {
-                    layer.on({
-                        mouseover: (e) => {
-                            const l = e.target;
-                            l.setStyle({
-                                weight: 2,
-                                color: '#fff',
-                                fillOpacity: 0.6,
-                                fillColor: '#6366f1'
-                            });
-                            // Simple tooltip
-                            l.bindTooltip(`<strong>${feature.properties.name}</strong>`, { 
-                                sticky: true, 
-                                direction: 'top', 
-                                className: 'map-tooltip' 
-                            }).openTooltip();
-                        },
-                        mouseout: (e) => {
-                            geoJsonLayer.resetStyle(e.target);
-                        },
-                        click: async (e) => {
-                            const stateName = feature.properties.name;
-                            showStateInfo(stateName);
-                            map.fitBounds(e.target.getBounds(), { padding: [40, 40] });
-                        }
-                    });
+// ══════════════════════════════════════
+// INTERLINK MODULE
+// ══════════════════════════════════════
+function initInterLink() {
+    const timelineItems = document.querySelectorAll('.timeline-item');
+    timelineItems.forEach(item => {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', () => {
+            const title = item.querySelector('h3')?.textContent;
+            if (!title) return;
+            const steps = document.querySelectorAll('.step-card');
+            for (let s of steps) {
+                const sTitle = s.querySelector('h3')?.textContent;
+                if (sTitle && (sTitle.includes(title) || title.includes(sTitle))) {
+                    s.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    s.classList.add('highlight-pulse');
+                    setTimeout(() => s.classList.remove('highlight-pulse'), 2000);
+                    break;
                 }
-            }).addTo(map);
-
-            // Fix for map "broken" shape - ensure it fits container perfectly
-            setTimeout(() => map.invalidateSize(), 600);
-
-        } catch (err) {
-            console.error("Failed to load map data:", err);
-            mapEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-dim);">Failed to load interactive map. Please check your connection.</div>';
-        }
-    }
-
-    /**
- * Displays detailed information for a selected state in the electoral map.
- * @async
- * @param {string|null} stateName - Name of the state to display.
- * @returns {Promise<void>}
- */
-async function showStateInfo(stateName) {
-        const placeholder = document.getElementById('map-info-placeholder');
-        const content = document.getElementById('state-info-content');
-        const nameEl = document.getElementById('state-name');
-        const evEl = document.getElementById('state-ev');
-        const deadlineEl = document.getElementById('state-deadline');
-        const idReqEl = document.getElementById('state-id-req');
-        const rulesEl = document.getElementById('state-rules');
-
-        placeholder.classList.add('hidden');
-        content.classList.remove('hidden');
-        content.style.animation = 'none';
-        content.offsetHeight; // trigger reflow
-        content.style.animation = 'slideInRight 0.4s ease-out';
-
-        nameEl.textContent = stateName || "State Information";
-        
-        if (!stateName) {
-            evEl.textContent = `0 Electoral Votes`;
-            deadlineEl.textContent = "-";
-            idReqEl.textContent = "-";
-            rulesEl.innerHTML = "";
-            return;
-        }
-
-        const res = await ElectionAPI.getStateElectoralData(stateName);
-        if (res.success) {
-            const data = res.data;
-            evEl.textContent = `${data.ev} Electoral Votes`;
-            deadlineEl.textContent = data.deadline;
-            idReqEl.textContent = data.idReq;
-            rulesEl.innerHTML = data.rules.map(rule => `
-                <li class="state-rule-item">
-                    <span class="state-rule-icon">✓</span>
-                    <span>${rule}</span>
-                </li>
-            `).join('');
-
-            // AI Insight Logic
-            const oldBox = document.getElementById('state-ai-insight-box');
-            if (oldBox) oldBox.remove();
-            const aiBox = document.createElement('div');
-            aiBox.id = 'state-ai-insight-box';
-            aiBox.className = 'ai-insight-box';
-            aiBox.innerHTML = `
-                <button class="btn btn-primary ai-insight-btn" id="btn-state-ai-insight" style="width:100%; margin-top:20px; gap:8px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
-                    <span>Generate AI State Analysis</span>
-                </button>
-                <div id="state-ai-insight-text" class="ai-insight-text hidden" style="margin-top:15px; padding:15px; background:var(--bg-glass); border:1px solid var(--border-color); border-radius:12px; font-size:0.85rem; line-height:1.6;"></div>
-            `;
-            content.appendChild(aiBox);
-            document.getElementById('btn-state-ai-insight').onclick = async () => {
-                const btn = document.getElementById('btn-state-ai-insight');
-                const textEl = document.getElementById('state-ai-insight-text');
-                btn.innerHTML = '<span>⚡ Processing AI...</span>';
-                btn.disabled = true;
-                const aiRes = await ElectionAPI.chat(`Explain the political significance of ${stateName} in a U.S. election. 2 sentences.`);
-                textEl.innerHTML = `<div style="color:var(--accent-primary); font-weight:700; margin-bottom:5px;">🤖 ElectBot Insight:</div>${aiRes.response}`;
-                textEl.classList.remove('hidden');
-                btn.style.display = 'none';
-            };
-        }
-    }
-
-    /**
-     * Initializes the Registration Verification feature.
-     */
-    function initVerification() {
-        const verifyForm = document.getElementById('verify-form');
-        const verifyResult = document.getElementById('verify-result');
-        if (!verifyForm) return;
-
-        verifyForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('verify-email').value.toLowerCase().trim();
-            if (!email) return;
-
-            verifyResult.innerHTML = '<span style="color:var(--text-muted)">Checking database...</span>';
-            
-            // Artificial delay for realism
-            await new Promise(r => setTimeout(r, 600));
-
-            const res = await RegistrationAPI.getRegisteredVoters();
-            const voter = res.data.find(v => v.email === email);
-            
-            if (voter) {
-                verifyResult.innerHTML = `<div style="padding:10px; background:rgba(34,197,94,0.1); border-radius:8px; border:1px solid rgba(34,197,94,0.2);"><span style="color:var(--success); font-weight:600;">✅ Verified:</span> <span style="color:var(--text-primary)">${voter.fullName} registered in ${voter.state} (${voter.partyAffiliation})</span></div>`;
-            } else {
-                verifyResult.innerHTML = `<div style="padding:10px; background:rgba(239,68,68,0.1); border-radius:8px; border:1px solid rgba(239,68,68,0.2);"><span style="color:var(--error); font-weight:600;">❌ Not Found:</span> <span style="color:var(--text-primary)">No record matches this email address.</span></div>`;
             }
         });
-    }
+    });
+}
 
-    /**
-     * Enhances clickability between timeline and steps.
-     */
-    function initInterLink() {
-        const timelineItems = document.querySelectorAll('.timeline-item');
-        timelineItems.forEach(item => {
-            item.style.cursor = 'pointer';
-            item.addEventListener('click', () => {
-                const title = item.querySelector('h3').textContent;
-                // Find matching step
-                const steps = document.querySelectorAll('.step-card');
-                for (let s of steps) {
-                    if (s.querySelector('h3').textContent.includes(title) || title.includes(s.querySelector('h3').textContent)) {
-                        s.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        s.classList.add('highlight-pulse');
-                        setTimeout(() => s.classList.remove('highlight-pulse'), 2000);
-                        break;
-                    }
-                }
-            });
-        });
-    }
-
-    /**
-     * Initializes the social sharing feature.
-     */
-    function initSharing() {
-        const shareBtn = document.getElementById('btn-share-hero');
-        if (!shareBtn) return;
-
-        shareBtn.addEventListener('click', () => {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'ElectEd — Interactive Election Assistant',
-                    text: 'Master the U.S. election process with this interactive AI toolkit!',
-                    url: window.location.href
-                }).catch(() => {
-                    copyToClipboard();
-                });
-            } else {
-                copyToClipboard();
-            }
-        });
-
-        function copyToClipboard() {
-            navigator.clipboard.writeText(window.location.href);
-            if (typeof showToast === 'function') {
-                showToast("Link copied to clipboard!", "success");
-            }
-        }
-    }
-
-    /**
-     * Initializes the real-time election countdown.
-     */
-    function initCountdown() {
-        const target = new Date("November 3, 2026 00:00:00").getTime();
-        const update = () => {
-            const now = new Date().getTime();
-            const diff = target - now;
-            if (diff <= 0) return;
-            const d = Math.floor(diff / (1000 * 60 * 60 * 24));
-            const h = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-            const s = Math.floor((diff % (1000 * 60)) / 1000);
-            
-            const daysEl = document.getElementById('days');
-            const hoursEl = document.getElementById('hours');
-            const minsEl = document.getElementById('minutes');
-            const secsEl = document.getElementById('seconds');
-            
-            if (daysEl) daysEl.textContent = d.toString().padStart(2, '0');
-            if (hoursEl) hoursEl.textContent = h.toString().padStart(2, '0');
-            if (minsEl) minsEl.textContent = m.toString().padStart(2, '0');
-            if (secsEl) secsEl.textContent = s.toString().padStart(2, '0');
+// ══════════════════════════════════════
+// SHARING MODULE
+// ══════════════════════════════════════
+function initSharing() {
+    const shareBtn = document.getElementById('btn-share-hero');
+    if (!shareBtn) return;
+    shareBtn.addEventListener('click', () => {
+        const shareData = {
+            title: 'ElectEd — Interactive Election Assistant',
+            text: 'Master the U.S. election process with this interactive AI toolkit!',
+            url: window.location.href
         };
-        setInterval(update, 1000);
-        update();
-    }
-
-    /**
-     * Initializes Voice Recognition for the chatbot.
-     */
-    function initVoice() {
-        const voiceBtn = document.getElementById('btn-voice-chat');
-        const input = document.getElementById('chat-input');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        
-        if (!voiceBtn || !SpeechRecognition) {
-            if (voiceBtn) voiceBtn.style.display = 'none';
-            return;
+        if (navigator.share) {
+            navigator.share(shareData).catch(() => copyToClipboard());
+        } else {
+            copyToClipboard();
         }
+    });
+    function copyToClipboard() {
+        navigator.clipboard.writeText(window.location.href);
+        showToast('🔗', 'Link copied!', 'Share this with your friends.', 'success');
+    }
+}
 
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.lang = 'en-US';
+// ══════════════════════════════════════
+// COUNTDOWN MODULE
+// ══════════════════════════════════════
+function initCountdown() {
+    const target = new Date('November 3, 2026 00:00:00').getTime();
+    const pad = n => n.toString().padStart(2, '0');
+    const update = () => {
+        const diff = target - Date.now();
+        if (diff <= 0) return;
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        const el = id => document.getElementById(id);
+        if (el('days'))    el('days').textContent    = pad(d);
+        if (el('hours'))   el('hours').textContent   = pad(h);
+        if (el('minutes')) el('minutes').textContent = pad(m);
+        if (el('seconds')) el('seconds').textContent = pad(s);
+    };
+    setInterval(update, 1000);
+    update();
+}
 
-        voiceBtn.addEventListener('click', () => {
-            if (voiceBtn.classList.contains('listening')) {
-                recognition.stop();
-                return;
+// ══════════════════════════════════════
+// VOICE MODULE
+// ══════════════════════════════════════
+function initVoice() {
+    const voiceBtn = document.getElementById('btn-voice-chat');
+    const input = document.getElementById('chat-input');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!voiceBtn || !SpeechRecognition) {
+        if (voiceBtn) voiceBtn.style.display = 'none';
+        return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    voiceBtn.addEventListener('click', () => {
+        if (voiceBtn.classList.contains('listening')) { recognition.stop(); return; }
+        voiceBtn.classList.add('listening');
+        recognition.start();
+    });
+    recognition.onresult = (event) => {
+        input.value = event.results[0][0].transcript;
+        voiceBtn.classList.remove('listening');
+        document.getElementById('chat-form')?.dispatchEvent(new Event('submit'));
+    };
+    recognition.onerror = () => voiceBtn.classList.remove('listening');
+    recognition.onend   = () => voiceBtn.classList.remove('listening');
+}
+
+// ══════════════════════════════════════
+// SCROLL REVEAL MODULE
+// ══════════════════════════════════════
+function initScrollReveal() {
+    const reveal = () => {
+        document.querySelectorAll('.section, .overview-card, .step-card, .candidate-card, .timeline-item, .reg-stat-card').forEach(item => {
+            if (item.getBoundingClientRect().top < window.innerHeight * 0.9) {
+                item.classList.add('reveal-visible');
             }
-            voiceBtn.classList.add('listening');
-            recognition.start();
         });
+    };
+    window.addEventListener('scroll', reveal, { passive: true });
+    setTimeout(reveal, 500);
+}
 
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            input.value = transcript;
-            voiceBtn.classList.remove('listening');
-            const chatForm = document.getElementById('chat-form');
-            if (chatForm) chatForm.dispatchEvent(new Event('submit'));
-        };
-
-        recognition.onerror = () => voiceBtn.classList.remove('listening');
-        recognition.onend = () => voiceBtn.classList.remove('listening');
-    }
-
-    /**
-     * Initializes scroll-based reveal animations.
-     */
-    function initScrollReveal() {
-        const reveal = () => {
-            const items = document.querySelectorAll('.section, .overview-card, .step-card, .candidate-card, .timeline-item, .reg-stat-card');
-            items.forEach(item => {
-                const rect = item.getBoundingClientRect();
-                const isVisible = rect.top < window.innerHeight * 0.9;
-                if (isVisible) {
-                    item.classList.add('reveal-visible');
-                }
-            });
-        };
-        window.addEventListener('scroll', reveal);
-        setTimeout(reveal, 500); // Trigger once after load
-    }
-
-    /**
-     * Initializes the custom magnetic cursor for desktop users.
-     */
-    function initCursor() {
-        if (typeof L !== 'undefined' && L.Browser.mobile) return;
-        const dot = document.getElementById('cursor-dot');
-        const outline = document.getElementById('cursor-outline');
-        if (!dot || !outline) return;
-        
-        window.addEventListener('mousemove', (e) => {
-            const posX = e.clientX;
-            const posY = e.clientY;
-            
-            dot.style.transform = `translate(${posX}px, ${posY}px)`;
-            
-            // Smoother outline tracking
-            outline.animate({
-                transform: `translate(${posX}px, ${posY}px)`
-            }, { duration: 400, fill: 'forwards' });
-        });
-
-        const interactives = document.querySelectorAll('a, button, .overview-card, .step-card, .candidate-card, .suggestion-chip, .faq-question-btn');
-        interactives.forEach(el => {
-            el.addEventListener('mouseenter', () => outline.classList.add('cursor-hover'));
-            el.addEventListener('mouseleave', () => outline.classList.remove('cursor-hover'));
-        });
-    }
-
-    initVerification();
-    initInterLink();
-    initSharing();
-    initCountdown();
-    initVoice();
-    initScrollReveal();
-    initCursor();
-
-    // Initial Fun Fact Toast
-    setTimeout(() => {
-        const facts = [
-            "George Washington is the only president to be elected unanimously.",
-            "Victoria Woodhull was the first woman to run for president, back in 1872.",
-            "The 24th Amendment made poll taxes illegal in federal elections.",
-            "In 1920, the 19th Amendment granted women the right to vote."
-        ];
-        const randomFact = facts[Math.floor(Math.random() * facts.length)];
-        if (typeof showToast === 'function') {
-            showToast(randomFact, "info");
-        }
-    }, 2500);
+// ══════════════════════════════════════
+// CURSOR MODULE
+// ══════════════════════════════════════
+function initCursor() {
+    if (typeof L !== 'undefined' && L.Browser.mobile) return;
+    const dot = document.getElementById('cursor-dot');
+    const outline = document.getElementById('cursor-outline');
+    if (!dot || !outline) return;
+    window.addEventListener('mousemove', (e) => {
+        dot.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+        outline.animate({ transform: `translate(${e.clientX}px, ${e.clientY}px)` }, { duration: 400, fill: 'forwards' });
+    });
+    document.querySelectorAll('a, button, .overview-card, .candidate-card, .suggestion-chip, .faq-question-btn').forEach(el => {
+        el.addEventListener('mouseenter', () => outline.classList.add('cursor-hover'));
+        el.addEventListener('mouseleave', () => outline.classList.remove('cursor-hover'));
+    });
 }
 
 // ══════════════════════════════════════
