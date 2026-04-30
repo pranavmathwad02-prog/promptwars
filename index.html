@@ -68,7 +68,8 @@
         window.googleMapReady = true;
       }
     </script>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA8B7C6D5E4F3G2H1I0J9K8L7M6N5O4P3&callback=initMap" async defer></script>
+    <!-- Google Maps removed — both maps use Leaflet (no API key required) -->
+
     
     <!-- Google Translate Integration -->
     <script type="text/javascript">
@@ -231,57 +232,9 @@
             </div>
         </section>
 
-        <!-- Electoral College Map -->
-        <section class="section electoral-map-section" id="electoral-map" aria-labelledby="electoral-map-title">
-            <div class="container">
-                <div class="section-header">
-                    <span class="section-tag">Interactive Data</span>
-                    <h2 id="electoral-map-title" class="section-title">Electoral College Map</h2>
-                    <p class="section-desc">Click on any state to explore its electoral votes, registration deadlines, and specific voting rules.</p>
-                </div>
-                <div class="electoral-map-container">
-                    <div class="electoral-map-layout" style="display: grid; grid-template-columns: 1fr 350px; gap: 32px; margin-top: 32px;">
-                    <div class="electoral-map-wrapper" style="position:relative;">
-                        <div id="electoral-leaflet-map" style="height: 500px; border-radius: 20px; border: 1px solid var(--border-color); overflow: hidden; background: var(--bg-secondary);"></div>
-                        <div class="map-legend-overlay" style="position:absolute; bottom:20px; left:20px; z-index:1000; background:rgba(15,23,42,0.8); backdrop-filter:blur(10px); padding:12px; border-radius:12px; border:1px solid var(--border-color); font-size:0.75rem;">
-                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
-                                <span style="width:12px; height:12px; background:#6366f1; border-radius:2px; display:inline-block; opacity:0.6;"></span>
-                                <span>States (Click for Data)</span>
-                            </div>
-                            <div style="color:var(--text-dim); font-style:italic;">Hover over states to view names.</div>
-                        </div>
-                    </div>
-                    <div class="electoral-info-panel" id="electoral-info-panel">
-                            <div class="map-info-placeholder" id="map-info-placeholder">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                <h3>Select a State</h3>
-                                <p>Click on the map to see electoral details for that state.</p>
-                            </div>
-                            <div class="state-info-content hidden" id="state-info-content">
-                                <div class="state-info-header">
-                                    <div class="state-flag-placeholder" id="state-flag">🇺🇸</div>
-                                    <h3 class="state-name-h3" id="state-name">State Name</h3>
-                                </div>
-                                <div class="electoral-votes-badge" id="state-ev">0 Electoral Votes</div>
-                                <div class="state-stats-grid">
-                                    <div class="state-stat-item">
-                                        <div class="state-stat-label">Deadline</div>
-                                        <div class="state-stat-value" id="state-deadline">-</div>
-                                    </div>
-                                    <div class="state-stat-item">
-                                        <div class="state-stat-label">Voter ID</div>
-                                        <div class="state-stat-value" id="state-id-req">-</div>
-                                    </div>
-                                </div>
-                                <ul class="state-rules-list" id="state-rules"></ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- Candidates -->
+
         <section class="section candidates-section" id="candidates" aria-labelledby="candidates-title">
             <div class="container">
                 <div class="section-header">
@@ -594,7 +547,7 @@
                             <li><a href="#overview">Home Overview</a></li>
                             <li><a href="#candidates">Candidate Profiles</a></li>
                             <li><a href="#pollmap">Polling Locations</a></li>
-                            <li><a href="#electoral-map">Electoral College</a></li>
+                            <li><a href="#pollmap">Interactive Civic Map</a></li>
                         </ul>
                     </div>
                     <div class="footer-col">
