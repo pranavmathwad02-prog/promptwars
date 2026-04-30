@@ -330,8 +330,11 @@ const ElectionAPI = (() => {
     // ── GEMINI API CONFIGURATION ──
     // Replace with your actual Gemini API key. Set to null to use offline fallback.
     // Get a free key at: https://aistudio.google.com/
-    const GEMINI_API_KEY = window.GEMINI_API_KEY || null;
-    const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+    const GEMINI_API_KEY = (typeof window !== 'undefined' && window.GEMINI_API_KEY) || null;
+    // Only construct endpoint if a real key is available
+    const GEMINI_ENDPOINT = GEMINI_API_KEY
+        ? `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`
+        : null;
 
     /**
      * Call the real Google Gemini API for a conversational response.
@@ -501,25 +504,26 @@ Response Guidelines:
          * @returns {Promise<{success: boolean, response: string, source: string}>}
          */
         async chat(message) {
-            if (!message || !message.trim()) {
+            if (!message || typeof message !== 'string' || !message.trim()) {
                 return { success: true, response: "Please ask me a question about the election process!", source: 'local' };
             }
+            // Guard against excessively long messages
+            const sanitised = message.trim().slice(0, 500);
 
             // Use Gemini API if a key is available
-            if (GEMINI_API_KEY) {
+            if (GEMINI_API_KEY && GEMINI_ENDPOINT) {
                 try {
-                    const response = await _callGeminiAPI(message);
+                    const response = await _callGeminiAPI(sanitised);
                     return { success: true, response, source: 'gemini' };
                 } catch (err) {
-                    console.warn('Gemini API error, falling back to local knowledge:', err.message);
-                    // Graceful fallback to local knowledge
-                    return { success: true, response: _localChatFallback(message), source: 'local-fallback' };
+                    console.warn('[ElectionAPI] Gemini API error, falling back to local knowledge:', err.message);
+                    return { success: true, response: _localChatFallback(sanitised), source: 'local-fallback' };
                 }
             }
 
-            // Offline / no-key: use local knowledge base with simulated delay
+            // Offline / no-key: use local knowledge base
             await _delay(300 + Math.random() * 400);
-            return { success: true, response: _localChatFallback(message), source: 'local' };
+            return { success: true, response: _localChatFallback(sanitised), source: 'local' };
         },
         /**
          * Fetches general platform statistics.

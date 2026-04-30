@@ -108,10 +108,18 @@ const RegistrationAPI = (() => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const data = await res.json();
-                if (!res.ok || !data.success) throw new Error(data.error || 'Failed to register.');
+                let data;
+                try {
+                    data = await res.json();
+                } catch {
+                    throw new Error('Server returned an invalid response.');
+                }
+                if (!res.ok || !data.success) {
+                    throw new Error(data.error || `Server error: ${res.status}`);
+                }
                 return data;
             } catch (err) {
+                // Surface the real error (validation or network)
                 return { success: false, error: err.message };
             }
         },
@@ -124,10 +132,13 @@ const RegistrationAPI = (() => {
         async getRegisteredVoters() {
             try {
                 const res = await fetch('/api/voters');
+                if (!res.ok) throw new Error(`Server error: ${res.status}`);
                 const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed to fetch voters.');
                 return data;
             } catch (err) {
-                // Fallback to localStorage if server is down
+                // Fallback to localStorage if server is unreachable
+                console.warn('[RegistrationAPI] Server unavailable, using localStorage fallback:', err.message);
                 const voters = _get(STORAGE_KEYS.voters);
                 return { success: true, data: voters, count: voters.length };
             }
