@@ -492,8 +492,10 @@ function initChat() {
         if (t) t.remove();
     };
 
-    const sendMessage = async (text) => {
-        if (!text.trim()) return;
+    const sendMessage = async (rawText) => {
+        // XSS: strip all HTML tags from user input before processing
+        const text = String(rawText).replace(/<[^>]+>/g, '').trim();
+        if (!text) return;
         addMessage(text, 'user');
         input.value = '';
         input.disabled = true;
