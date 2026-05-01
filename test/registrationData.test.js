@@ -483,4 +483,144 @@ describe('RegistrationAPI.getPollingBooths()', () => {
         const res = await RegistrationAPI.getPollingBooths();
         expect(res.count).toBe(res.data.length);
     });
+
+    test('search by booth name returns matching booths', async () => {
+        const res = await RegistrationAPI.getPollingBooths({ search: 'lincoln' });
+        expect(res.success).toBe(true);
+        expect(res.data.length).toBeGreaterThan(0);
+        res.data.forEach(b => expect(b.name.toLowerCase()).toContain('lincoln'));
+    });
+
+    test('combined state + search filter narrows results', async () => {
+        const res = await RegistrationAPI.getPollingBooths({ state: 'New York', search: 'lincoln' });
+        expect(res.success).toBe(true);
+        res.data.forEach(b => {
+            expect(b.state).toBe('New York');
+            expect(b.name.toLowerCase()).toContain('lincoln');
+        });
+    });
+});
+
+// ── Concurrent registration calls ────────────────────────────────────────────
+describe('RegistrationAPI — concurrent registrations', () => {
+    const makeVoter = (n) => ({
+        fullName: `Voter ${n}`,
+        email: `voter${n}@test.com`,
+        dob: '1990-01-01',
+        state: 'California',
+        partyAffiliation: 'Unaffiliated'
+    });
+
+    test('registers 5 voters sequentially and count reflects correctly', async () => {
+        for (let i = 1; i <= 5; i++) {
+            await RegistrationAPI.registerVoter(makeVoter(i));
+        }
+        const res = await RegistrationAPI.getRegisteredVoters();
+        expect(res.count).toBe(5);
+    });
+
+    test('deleting one voter from a list of 3 leaves 2 remaining', async () => {
+        await RegistrationAPI.registerVoter(makeVoter(10));
+        await RegistrationAPI.registerVoter(makeVoter(11));
+        const reg = await RegistrationAPI.registerVoter(makeVoter(12));
+        await RegistrationAPI.deleteVoter(reg.data.id);
+        const res = await RegistrationAPI.getRegisteredVoters();
+        expect(res.count).toBe(2);
+    });
+
+    test('deleting the same ID twice is idempotent (no throw)', async () => {
+        const reg = await RegistrationAPI.registerVoter(makeVoter(20));
+        await RegistrationAPI.deleteVoter(reg.data.id);
+        const res = await RegistrationAPI.deleteVoter(reg.data.id);
+        expect(res.success).toBe(true);
+    });
+});
+
+// ── getCandidateById — edge cases ─────────────────────────────────────────────
+describe('RegistrationAPI.getCandidateById() — edge cases', () => {
+    test('returns failure for ID 0', async () => {
+        const res = await RegistrationAPI.getCandidateById(0);
+        expect(res.success).toBe(false);
+    });
+
+    test('returns failure for null ID', async () => {
+        const res = await RegistrationAPI.getCandidateById(null);
+        expect(res.success).toBe(false);
+    });
+
+    test('returns success for all 8 valid candidate IDs', async () => {
+        for (let i = 1; i <= 8; i++) {
+            const res = await RegistrationAPI.getCandidateById(i);
+            expect(res.success).toBe(true);
+            expect(res.data.id).toBe(i);
+        }
+    });
+});
+
+// ── saveQuizScore — percentage calculation accuracy ───────────────────────────
+describe('RegistrationAPI.saveQuizScore() — percentage accuracy', () => {
+    test('0 out of 10 = 0%', async () => {
+        const res = await RegistrationAPI.saveQuizScore(0, 10);
+        expect(res.data.percentage).toBe(0);
+    });
+
+    test('10 out of 10 = 100%', async () => {
+        const res = await RegistrationAPI.saveQuizScore(10, 10);
+        expect(res.data.percentage).toBe(100);
+    });
+
+    test('3 out of 10 = 30%', async () => {
+        const res = await RegistrationAPI.saveQuizScore(3, 10);
+        expect(res.data.percentage).toBe(30);
+    });
+
+    test('each saved entry has a valid ISO date string', async () => {
+        const res = await RegistrationAPI.saveQuizScore(7, 10);
+        expect(new Date(res.data.date).toISOString()).toBe(res.data.date);
+    });
+});
+
+// ── getPreferences — persistence and defaults ──────────────────────────────────
+describe('RegistrationAPI.getPreferences() — initial state', () => {
+    test('returns empty preferences object on fresh start', async () => {
+        const res = await RegistrationAPI.getPreferences();
+        expect(res.success).toBe(true);
+        expect(typeof res.data).toBe('object');
+        expect(Object.keys(res.data)).toHaveLength(0);
+    });
+});
+
+// ── getStates — uniqueness and alphabetical order ─────────────────────────────
+describe('RegistrationAPI.getStates() — uniqueness', () => {
+    test('all state names are unique (no duplicates)', () => {
+        const states = RegistrationAPI.getStates();
+        const unique = new Set(states);
+        expect(unique.size).toBe(states.length);
+    });
+
+    test('states are in alphabetical order', () => {
+        const states = RegistrationAPI.getStates();
+        const sorted = [...states].sort((a, b) => a.localeCompare(b));
+        expect(states).toEqual(sorted);
+    });
+});
+
+// ── getRegistrationStats — edge cases ─────────────────────────────────────────
+describe('RegistrationAPI.getRegistrationStats() — edge cases', () => {
+    test('returns byParty and byState as objects', async () => {
+        const res = await RegistrationAPI.getRegistrationStats();
+        expect(typeof res.data.byParty).toBe('object');
+        expect(typeof res.data.byState).toBe('object');
+    });
+
+    test('total reflects all registered voters', async () => {
+        await RegistrationAPI.registerVoter({
+            fullName: 'Stats Test', email: 'stats@test.com',
+            dob: '1985-03-10', state: 'Texas', partyAffiliation: 'Green Party'
+        });
+        const res = await RegistrationAPI.getRegistrationStats();
+        expect(res.data.total).toBe(1);
+        expect(res.data.byParty['Green Party']).toBe(1);
+        expect(res.data.byState['Texas']).toBe(1);
+    });
 });

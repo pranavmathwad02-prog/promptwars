@@ -522,3 +522,311 @@ describe('ElectionAPI.getStateElectoralData()', () => {
         }
     });
 });
+
+// ── Additional searchFAQ edge cases ─────────────────────────────────────────
+describe('ElectionAPI.searchFAQ() — additional guards', () => {
+    test('null query returns empty array without throwing', async () => {
+        const res = await ElectionAPI.searchFAQ(null);
+        expect(res.success).toBe(true);
+        expect(Array.isArray(res.data)).toBe(true);
+        expect(res.data).toHaveLength(0);
+    });
+
+    test('undefined query returns empty array without throwing', async () => {
+        const res = await ElectionAPI.searchFAQ(undefined);
+        expect(res.success).toBe(true);
+        expect(res.data).toHaveLength(0);
+    });
+
+    test('whitespace-only query returns empty array', async () => {
+        const res = await ElectionAPI.searchFAQ('   ');
+        expect(res.success).toBe(true);
+        expect(res.data).toHaveLength(0);
+    });
+
+    test('numeric value query returns empty array without throwing', async () => {
+        const res = await ElectionAPI.searchFAQ(42);
+        expect(res.success).toBe(true);
+        expect(Array.isArray(res.data)).toBe(true);
+    });
+
+    test('returns count equal to data array length', async () => {
+        const res = await ElectionAPI.searchFAQ('vote');
+        expect(res.success).toBe(true);
+        expect(res.count).toBe(res.data.length);
+    });
+});
+
+// ── Additional checkAnswer edge cases ────────────────────────────────────────
+describe('ElectionAPI.checkAnswer() — additional guards', () => {
+    test('undefined questionId returns failure', async () => {
+        const res = await ElectionAPI.checkAnswer(undefined, 0);
+        expect(res.success).toBe(false);
+        expect(res).toHaveProperty('error');
+    });
+
+    test('undefined answerIndex returns failure', async () => {
+        const res = await ElectionAPI.checkAnswer(1, undefined);
+        expect(res.success).toBe(false);
+        expect(res).toHaveProperty('error');
+    });
+
+    test('string questionId that has no match returns failure', async () => {
+        const res = await ElectionAPI.checkAnswer('invalid', 0);
+        expect(res.success).toBe(false);
+    });
+
+    test('out-of-range answerIndex (e.g. 99) returns correct=false', async () => {
+        const res = await ElectionAPI.checkAnswer(1, 99);
+        expect(res.success).toBe(true);
+        expect(res.correct).toBe(false);
+    });
+});
+
+// ── getStepById — full boundary coverage ─────────────────────────────────────
+describe('ElectionAPI.getStepById() — boundary tests', () => {
+    test('returns failure for ID = 0', async () => {
+        const res = await ElectionAPI.getStepById(0);
+        expect(res.success).toBe(false);
+    });
+
+    test('returns failure for float ID (1.5)', async () => {
+        const res = await ElectionAPI.getStepById(1.5);
+        expect(res.success).toBe(false);
+    });
+
+    test('returns failure for string ID', async () => {
+        const res = await ElectionAPI.getStepById('one');
+        expect(res.success).toBe(false);
+    });
+
+    test('returns success for every valid ID 1-8', async () => {
+        for (let i = 1; i <= 8; i++) {
+            const res = await ElectionAPI.getStepById(i);
+            expect(res.success).toBe(true);
+            expect(res.data.id).toBe(i);
+        }
+    });
+});
+
+// ── Concurrent API Calls ──────────────────────────────────────────────────────
+describe('ElectionAPI — concurrent & parallel call safety', () => {
+    test('concurrent getSteps + getQuizQuestions + getFAQs all succeed', async () => {
+        const [steps, quiz, faqs] = await Promise.all([
+            ElectionAPI.getSteps(),
+            ElectionAPI.getQuizQuestions(),
+            ElectionAPI.getFAQs()
+        ]);
+        expect(steps.success).toBe(true);
+        expect(quiz.success).toBe(true);
+        expect(faqs.success).toBe(true);
+    });
+
+    test('10 concurrent chat calls all return success', async () => {
+        const calls = Array.from({ length: 10 }, (_, i) =>
+            ElectionAPI.chat(`Question about electoral college ${i}`)
+        );
+        const results = await Promise.all(calls);
+        results.forEach(res => {
+            expect(res.success).toBe(true);
+            expect(typeof res.response).toBe('string');
+        });
+    });
+});
+
+// ── getStats deep consistency ─────────────────────────────────────────────────
+describe('ElectionAPI.getStats() — deep consistency', () => {
+    test('all stat values are positive integers', async () => {
+        const res = await ElectionAPI.getStats();
+        Object.values(res.data).forEach(val => {
+            expect(typeof val).toBe('number');
+            expect(val).toBeGreaterThan(0);
+        });
+    });
+
+    test('totalSteps matches 8 (the full election journey)', async () => {
+        const res = await ElectionAPI.getStats();
+        expect(res.data.totalSteps).toBe(8);
+    });
+
+    test('totalQuizQuestions matches 10', async () => {
+        const res = await ElectionAPI.getStats();
+        expect(res.data.totalQuizQuestions).toBe(10);
+    });
+});
+
+// ── chat — additional robust scenarios ───────────────────────────────────────
+describe('ElectionAPI.chat() — robustness', () => {
+    test('query about "absentee" returns relevant response', async () => {
+        const res = await ElectionAPI.chat('How does absentee voting work?');
+        expect(res.success).toBe(true);
+        expect(res.response.toLowerCase()).toMatch(/mail|ballot|absentee/);
+    });
+
+    test('query about "swing state" returns a meaningful response', async () => {
+        const res = await ElectionAPI.chat('What is a swing state?');
+        expect(res.success).toBe(true);
+        expect(res.response.length).toBeGreaterThan(20);
+    });
+
+    test('response always has a "source" field', async () => {
+        const res = await ElectionAPI.chat('Tell me about Election Day');
+        expect(res).toHaveProperty('source');
+        expect(['gemini', 'fallback', 'local', 'backend']).toContain(res.source);
+    });
+
+    test('XSS with script tag followed by keyword is handled and stripped', async () => {
+        const res = await ElectionAPI.chat('<img src=x onerror=alert(1)>primary');
+        expect(res.success).toBe(true);
+        expect(res.response).not.toMatch(/<img/i);
+    });
+});
+
+// ── Boundary & Extreme Input Tests ───────────────────────────────────────────
+describe('ElectionAPI — boundary and extreme inputs', () => {
+    test('extremely long input (10,000 chars) is accepted and returns success', async () => {
+        const longMsg = 'electoral college '.repeat(556); // ~10,000 chars
+        const res = await ElectionAPI.chat(longMsg);
+        expect(res.success).toBe(true);
+        expect(typeof res.response).toBe('string');
+        expect(res.response.length).toBeGreaterThan(0);
+    });
+
+    test('special characters in chat input do not throw', async () => {
+        const specialChars = '!@#$%^&*()_+[]{}|;:\'",.<>?/\\`~Electoral College';
+        const res = await ElectionAPI.chat(specialChars);
+        expect(res.success).toBe(true);
+    });
+
+    test('emoji-only input does not throw and returns a string response', async () => {
+        const res = await ElectionAPI.chat('🗳️🇺🇸🏛️⭐');
+        expect(res.success).toBe(true);
+        expect(typeof res.response).toBe('string');
+    });
+
+    test('newline and tab characters in input do not cause errors', async () => {
+        const res = await ElectionAPI.chat('How does\nvoting\twork?');
+        expect(res.success).toBe(true);
+    });
+
+    test('null-byte in input string does not crash', async () => {
+        const res = await ElectionAPI.chat('electoral\x00college');
+        expect(res.success).toBe(true);
+    });
+
+    test('searchFAQ with very long query still returns empty array safely', async () => {
+        const longQuery = 'a'.repeat(5000);
+        const res = await ElectionAPI.searchFAQ(longQuery);
+        expect(res.success).toBe(true);
+        expect(Array.isArray(res.data)).toBe(true);
+    });
+});
+
+// ── Simulated API Failure & Graceful Degradation ─────────────────────────────
+describe('ElectionAPI — simulated API failure (graceful degradation)', () => {
+    /**
+     * The ElectionAPI chat() method has a 3-tier fallback strategy:
+     * 1. Backend /api/chat (localhost only)
+     * 2. Direct Gemini API (if key configured)
+     * 3. Local knowledge base (always works)
+     *
+     * In the Node/Jest test environment:
+     * - We are NOT on localhost (window.location is undefined)
+     * - GEMINI_API_KEY is null in the test replica
+     * → Therefore, ALL calls go to Strategy 3 (local fallback),
+     *   which is itself the "graceful degradation" path.
+     *
+     * These tests verify that when the AI services are unavailable,
+     * the system still returns a valid, non-empty, user-friendly response
+     * instead of throwing or returning an error object.
+     */
+
+    test('when Gemini API is unavailable, falls back gracefully (source=local)', async () => {
+        const res = await ElectionAPI.chat('What is the Electoral College?');
+        expect(res.success).toBe(true);
+        // In offline/test mode, source must be "local" or "fallback"
+        expect(['local', 'fallback']).toContain(res.source);
+        expect(res.response).toBeTruthy();
+        expect(res.response.length).toBeGreaterThan(10);
+    });
+
+    test('fallback response does not contain error messages or stack traces', async () => {
+        const res = await ElectionAPI.chat('voter registration requirements');
+        expect(res.success).toBe(true);
+        expect(res.response).not.toMatch(/error|exception|stack|undefined/i);
+    });
+
+    test('fallback response for unknown topic is a helpful redirection string', async () => {
+        const res = await ElectionAPI.chat('What is the best pizza topping?');
+        expect(res.success).toBe(true);
+        // Should redirect to civic topics, not crash or return empty
+        expect(res.response.length).toBeGreaterThan(10);
+    });
+
+    test('10 rapid sequential calls all return success (no crash under load)', async () => {
+        for (let i = 0; i < 10; i++) {
+            const res = await ElectionAPI.chat(`Test query ${i} about absentee voting`);
+            expect(res.success).toBe(true);
+        }
+    });
+});
+
+// ── Complete Quiz Answer Coverage ─────────────────────────────────────────────
+describe('ElectionAPI.checkAnswer() — complete 10-question coverage', () => {
+    // Correct answer indices for all 10 questions
+    const correctAnswers = [1, 1, 1, 2, 1, 2, 1, 2, 1, 2];
+
+    test.each(
+        correctAnswers.map((correct, idx) => [idx + 1, correct])
+    )('question %i with correct answer %i returns correct=true', async (qId, correctIdx) => {
+        const res = await ElectionAPI.checkAnswer(qId, correctIdx);
+        expect(res.success).toBe(true);
+        expect(res.correct).toBe(true);
+        expect(res.explanation).toBeTruthy();
+    });
+
+    test.each(
+        correctAnswers.map((correct, idx) => [idx + 1, correct])
+    )('question %i with wrong answer returns correct=false', async (qId, correctIdx) => {
+        const wrongIdx = (correctIdx + 1) % 4; // Different from correct
+        const res = await ElectionAPI.checkAnswer(qId, wrongIdx);
+        expect(res.success).toBe(true);
+        expect(res.correct).toBe(false);
+        expect(res.correctIndex).toBe(correctIdx);
+    });
+});
+
+// ── Timeline Field Completeness ───────────────────────────────────────────────
+describe('ElectionAPI.getTimeline() — field completeness', () => {
+    const requiredFields = ['month', 'title', 'desc', 'icon', 'color'];
+
+    test('every presidential timeline event has all required fields', async () => {
+        const res = await ElectionAPI.getTimeline('presidential');
+        expect(res.success).toBe(true);
+        res.data.forEach(event => {
+            requiredFields.forEach(field => {
+                expect(event).toHaveProperty(field);
+                expect(event[field]).toBeTruthy();
+            });
+        });
+    });
+
+    test('every midterm timeline event has all required fields', async () => {
+        const res = await ElectionAPI.getTimeline('midterm');
+        expect(res.success).toBe(true);
+        res.data.forEach(event => {
+            requiredFields.forEach(field => {
+                expect(event).toHaveProperty(field);
+                expect(event[field]).toBeTruthy();
+            });
+        });
+    });
+
+    test('all color values are valid CSS hex strings', async () => {
+        const res = await ElectionAPI.getTimeline('presidential');
+        const hexPattern = /^#[0-9a-fA-F]{3,8}$/;
+        res.data.forEach(event => {
+            expect(event.color).toMatch(hexPattern);
+        });
+    });
+});
