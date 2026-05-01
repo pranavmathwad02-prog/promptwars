@@ -469,10 +469,22 @@ Response Guidelines:
          * @param {number} answerIndex - The index of the user's selected answer.
          * @returns {Promise<{success: boolean, correct: boolean, explanation: string, correctIndex: number}>}
          */
+        /**
+         * Validates and checks the user's quiz answer.
+         * Returns failure for missing or null parameters.
+         * @async
+         * @param {number} questionId - The question's unique ID.
+         * @param {number} answerIndex - The zero-based option index selected.
+         * @returns {Promise<{success: boolean, correct?: boolean, explanation?: string, correctIndex?: number, error?: string}>}
+         */
         async checkAnswer(questionId, answerIndex) {
             await _delay(80);
+            if (questionId === null || questionId === undefined ||
+                answerIndex === null || answerIndex === undefined) {
+                return { success: false, error: 'Missing parameters' };
+            }
             const q = quizQuestions.find(qu => qu.id === questionId);
-            if (!q) return { success: false, error: "Question not found" };
+            if (!q) return { success: false, error: 'Question not found' };
             const correct = q.correct === answerIndex;
             return { success: true, correct, explanation: q.explanation, correctIndex: q.correct };
         },
@@ -491,10 +503,23 @@ Response Guidelines:
          * @param {string} query - The search query.
          * @returns {Promise<{success: boolean, data: Array, count: number}>}
          */
+        /**
+         * Searches FAQs by keyword, matching question and answer text.
+         * Handles null, empty, and non-string inputs gracefully.
+         * @async
+         * @param {string} query - The search keyword.
+         * @returns {Promise<{success: boolean, data: Array, count: number}>}
+         */
         async searchFAQ(query) {
             await _delay(100);
-            const lower = query.toLowerCase();
-            const results = faqs.filter(f => f.question.toLowerCase().includes(lower) || f.answer.toLowerCase().includes(lower));
+            if (!query || typeof query !== 'string' || !query.trim()) {
+                return { success: true, data: [], count: 0 };
+            }
+            const lower = query.toLowerCase().trim();
+            const results = faqs.filter(f =>
+                f.question.toLowerCase().includes(lower) ||
+                f.answer.toLowerCase().includes(lower)
+            );
             return { success: true, data: results, count: results.length };
         },
         /**
