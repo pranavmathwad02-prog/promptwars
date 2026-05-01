@@ -627,9 +627,11 @@ async function initCandidates() {
         }, 150);
     };
 
-    // Modal logic
+    // Modal logic — with WCAG focus trapping
     const modal = document.getElementById('candidate-modal');
     const modalClose = document.getElementById('modal-close');
+    /** @type {HTMLElement|null} Element that opened the modal, restored on close */
+    let _modalOpener = null;
 
     const openCandidateModal = async (id) => {
         const res = await RegistrationAPI.getCandidateById(id);
@@ -648,13 +650,24 @@ async function initCandidates() {
             '</div>' +
             '<div class="modal-section-title">Campaign Platform</div>' +
             '<ul class="modal-platform">' + c.platform.map(p => '<li>' + p + '</li>').join('') + '</ul>';
+        // Store opener for focus restoration on close
+        _modalOpener = document.activeElement;
         modal.classList.add('visible');
+        modal.removeAttribute('aria-hidden');
         document.body.style.overflow = 'hidden';
+        // Move focus into the modal
+        setTimeout(() => { if (modalClose) modalClose.focus(); }, 50);
     };
 
     const closeModal = () => {
         modal.classList.remove('visible');
+        modal.setAttribute('aria-hidden', 'true');
         document.body.style.overflow = '';
+        // Restore focus to the element that triggered the modal
+        if (_modalOpener && typeof _modalOpener.focus === 'function') {
+            _modalOpener.focus();
+        }
+        _modalOpener = null;
     };
 
     if (modalClose) modalClose.addEventListener('click', closeModal);
@@ -663,7 +676,24 @@ async function initCandidates() {
             if (e.target === modal) closeModal();
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('visible')) closeModal();
+            if (!modal.classList.contains('visible')) return;
+            if (e.key === 'Escape') { closeModal(); return; }
+            // Tab-trap: keep focus inside the modal
+            if (e.key === 'Tab') {
+                const focusable = Array.from(
+                    modal.querySelectorAll(
+                        'button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])'
+                    )
+                ).filter(el => !el.disabled && !el.closest('[hidden]'));
+                if (!focusable.length) { e.preventDefault(); return; }
+                const first = focusable[0];
+                const last  = focusable[focusable.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                    e.preventDefault(); last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                    e.preventDefault(); first.focus();
+                }
+            }
         });
     }
 
@@ -1138,7 +1168,21 @@ function initFAQSearch() {
  * @param {string} [type='info'] - Type of toast (success, error, info, warning).
  * @returns {void}
  */
+/**
+ * Displays a self-dismissing toast notification to the user.
+ * Appended to #toast-container; fades out after a fixed duration.
+ * @param {string} icon    - Emoji or icon character to display.
+ * @param {string} title   - Short, bold title text for the toast.
+ * @param {string} message - Supporting detail text (may be empty).
+ * @param {'info'|'success'|'error'|'warning'} [type='info'] - Visual style variant.
+ * @returns {void}
+ */
 function showToast(icon, title, message, type = 'info') {
+    /** @constant {number} TOAST_DURATION_MS - Auto-dismiss after 4 seconds */
+    const TOAST_DURATION_MS = 4000;
+    /** @constant {number} TOAST_FADE_MS - CSS fade-out duration in ms */
+    const TOAST_FADE_MS = 300;
+
     const container = document.getElementById('toast-container');
     if (!container) return;
     const toast = document.createElement('div');
@@ -1149,7 +1193,7 @@ function showToast(icon, title, message, type = 'info') {
             <div class="toast-title">${title}</div>
             ${message ? `<div class="toast-message">${message}</div>` : ''}
         </div>
-        <button class="toast-close" aria-label="Dismiss">
+        <button class="toast-close" aria-label="Dismiss notification">
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
         </button>
     `;
@@ -1157,11 +1201,11 @@ function showToast(icon, title, message, type = 'info') {
 
     const dismiss = () => {
         toast.classList.add('toast-out');
-        setTimeout(() => toast.remove(), 300);
+        setTimeout(() => toast.remove(), TOAST_FADE_MS);
     };
 
     toast.querySelector('.toast-close').addEventListener('click', dismiss);
-    setTimeout(dismiss, 4000);
+    setTimeout(dismiss, TOAST_DURATION_MS);
 }
 
 // ══════════════════════════════════════
@@ -1399,6 +1443,12 @@ function initPollingMap() {
 // ══════════════════════════════════════
 // VERIFICATION MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the voter registration verification form.
+ * Looks up a submitted email address against the registered voter list
+ * and renders an inline success or "not found" result message.
+ * @returns {void}
+ */
 function initVerification() {
     const verifyForm = document.getElementById('verify-form');
     const verifyResult = document.getElementById('verify-result');
@@ -1426,6 +1476,12 @@ function initVerification() {
 // ══════════════════════════════════════
 // INTERLINK MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes cross-section interlinking between the timeline and steps.
+ * Clicking a timeline item scrolls to the corresponding step card
+ * and briefly highlights it with a pulse animation.
+ * @returns {void}
+ */
 function initInterLink() {
     const timelineItems = document.querySelectorAll('.timeline-item');
     timelineItems.forEach(item => {
@@ -1450,6 +1506,12 @@ function initInterLink() {
 // ══════════════════════════════════════
 // SHARING MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the native Web Share API (or clipboard fallback).
+ * Triggered by the share button in the hero section; copies the
+ * current page URL to clipboard if the Share API is unavailable.
+ * @returns {void}
+ */
 function initSharing() {
     const shareBtn = document.getElementById('btn-share-hero');
     if (!shareBtn) return;
@@ -1474,16 +1536,32 @@ function initSharing() {
 // ══════════════════════════════════════
 // COUNTDOWN MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the live countdown timer targeting the 2026 Midterm Elections.
+ * Updates the displayed days, hours, minutes, and seconds every second.
+ * Stops automatically once the target date has passed.
+ * @returns {void}
+ */
 function initCountdown() {
+    /** @constant {number} MS_PER_DAY - Milliseconds in one day */
+    const MS_PER_DAY  = 86_400_000;
+    /** @constant {number} MS_PER_HOUR - Milliseconds in one hour */
+    const MS_PER_HOUR = 3_600_000;
+    /** @constant {number} MS_PER_MIN - Milliseconds in one minute */
+    const MS_PER_MIN  = 60_000;
+    /** @constant {number} MS_PER_SEC - Milliseconds in one second */
+    const MS_PER_SEC  = 1_000;
+
     const target = new Date('November 3, 2026 00:00:00').getTime();
-    const pad = n => n.toString().padStart(2, '0');
+    /** @param {number} n - Integer to zero-pad to two digits */
+    const pad = (n) => String(n).padStart(2, '0');
     const update = () => {
         const diff = target - Date.now();
         if (diff <= 0) return;
-        const d = Math.floor(diff / 86400000);
-        const h = Math.floor((diff % 86400000) / 3600000);
-        const m = Math.floor((diff % 3600000) / 60000);
-        const s = Math.floor((diff % 60000) / 1000);
+        const d = Math.floor(diff / MS_PER_DAY);
+        const h = Math.floor((diff % MS_PER_DAY)  / MS_PER_HOUR);
+        const m = Math.floor((diff % MS_PER_HOUR) / MS_PER_MIN);
+        const s = Math.floor((diff % MS_PER_MIN)  / MS_PER_SEC);
         const el = id => document.getElementById(id);
         if (el('days'))    el('days').textContent    = pad(d);
         if (el('hours'))   el('hours').textContent   = pad(h);
@@ -1497,6 +1575,13 @@ function initCountdown() {
 // ══════════════════════════════════════
 // VOICE MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the Web Speech API voice-input feature for the chatbot.
+ * Hides the microphone button on unsupported browsers.
+ * On activation, transcribed speech is inserted into the chat input
+ * and automatically submitted as a message.
+ * @returns {void}
+ */
 function initVoice() {
     const voiceBtn = document.getElementById('btn-voice-chat');
     const input = document.getElementById('chat-input');
@@ -1526,6 +1611,12 @@ function initVoice() {
 // ══════════════════════════════════════
 // SCROLL REVEAL MODULE
 // ══════════════════════════════════════
+/**
+ * Adds a 'reveal-visible' class to page sections as they scroll into view.
+ * Uses a scroll event listener with a 90% viewport threshold.
+ * An initial timeout fires the check after 500ms to catch above-fold items.
+ * @returns {void}
+ */
 function initScrollReveal() {
     const reveal = () => {
         document.querySelectorAll('.section, .overview-card, .step-card, .candidate-card, .timeline-item, .reg-stat-card').forEach(item => {
@@ -1541,6 +1632,13 @@ function initScrollReveal() {
 // ══════════════════════════════════════
 // CURSOR MODULE
 // ══════════════════════════════════════
+/**
+ * Initializes the custom magnetic cursor overlay for desktop browsers.
+ * Skipped automatically on mobile devices (Leaflet.Browser.mobile).
+ * Moves the dot cursor instantly and animates the outline with a lag
+ * to create a trailing magnetic effect.
+ * @returns {void}
+ */
 function initCursor() {
     if (typeof L !== 'undefined' && L.Browser.mobile) return;
     const dot = document.getElementById('cursor-dot');
