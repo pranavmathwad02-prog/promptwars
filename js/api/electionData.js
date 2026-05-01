@@ -378,11 +378,17 @@ Response Guidelines:
             ]
         };
 
+        /** @type {AbortController} Cancels the Gemini request if it exceeds the timeout */
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s hard timeout
+
         const res = await fetch(GEMINI_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body)
+            body: JSON.stringify(body),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
 
         if (!res.ok) {
             const err = await res.json().catch(() => ({}));
@@ -562,8 +568,8 @@ Response Guidelines:
                 try {
                     const response = await _callGeminiAPI(sanitised);
                     return { success: true, response, source: 'gemini' };
-                } catch (err) {
-                    console.warn('[ElectionAPI] Gemini API error, using local fallback:', err.message);
+                } catch (_geminiErr) {
+                    // Gemini unavailable — silently fall through to local knowledge base
                 }
             }
 

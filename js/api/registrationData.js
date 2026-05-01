@@ -137,8 +137,7 @@ const RegistrationAPI = (() => {
                 if (!data.success) throw new Error(data.error || 'Failed to fetch voters.');
                 return data;
             } catch (err) {
-                // Fallback to localStorage if server is unreachable
-                console.warn('[RegistrationAPI] Server unavailable, using localStorage fallback:', err.message);
+                // Server unreachable — silently fall back to localStorage
                 const voters = _get(STORAGE_KEYS.voters);
                 return { success: true, data: voters, count: voters.length };
             }
