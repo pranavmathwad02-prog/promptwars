@@ -157,6 +157,8 @@
         </div>
     </header>
 
+    <nav id="main-nav" aria-label="Primary navigation" role="navigation">
+    </nav>
     <main id="main-content" role="main">
         <!-- Hero -->
         <section class="hero-section" id="hero-section" aria-labelledby="hero-title">
@@ -304,17 +306,30 @@
                         <form id="registration-form" novalidate>
                             <div class="form-group">
                                 <label for="reg-name">Full Name <span class="required">*</span></label>
-                                <input type="text" id="reg-name" class="form-input" placeholder="Enter your full name" required maxlength="100">
+                                <input type="text" id="reg-name" class="form-input"
+                                placeholder="Enter your full name"
+                                required
+                                maxlength="100"
+                                autocomplete="name"
+                                aria-required="true">
                                 <div class="form-error" id="reg-name-error"></div>
                             </div>
                             <div class="form-group">
                                 <label for="reg-email">Email Address <span class="required">*</span></label>
-                                <input type="email" id="reg-email" class="form-input" placeholder="your@email.com" required maxlength="200">
+                                <input type="email" id="reg-email" class="form-input"
+                                placeholder="your@email.com"
+                                required
+                                maxlength="200"
+                                autocomplete="email"
+                                aria-required="true">
                                 <div class="form-error" id="reg-email-error"></div>
                             </div>
                             <div class="form-group">
                                 <label for="reg-dob">Date of Birth <span class="required">*</span></label>
-                                <input type="date" id="reg-dob" class="form-input" required>
+                                <input type="date" id="reg-dob" class="form-input"
+                                required
+                                autocomplete="bday"
+                                aria-required="true">
                                 <div class="form-error" id="reg-dob-error"></div>
                             </div>
                             <div class="form-group">
@@ -339,8 +354,13 @@
                         <div class="verify-status-area" style="margin-top:24px; padding-top:24px; border-top:1px solid var(--border-color);">
                             <h4>🔍 Check Registration Status</h4>
                             <p style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:12px;">Already registered? Enter your email to verify.</p>
-                            <form id="verify-form" style="display:flex; gap:8px;">
-                                <input type="email" id="verify-email" class="form-input" placeholder="your@email.com" style="flex:1;">
+                                <form id="verify-form" style="display:flex; gap:8px;" aria-label="Verify voter registration status">
+                                    <label for="verify-email" class="sr-only">Enter email address to verify registration</label>
+                                    <input type="email" id="verify-email" class="form-input"
+                                        placeholder="your@email.com"
+                                        autocomplete="email"
+                                        aria-label="Email address to verify registration"
+                                        style="flex:1;">
                                 <button type="submit" class="btn btn-secondary" style="padding: 10px 16px;">Check</button>
                             </form>
                             <div id="verify-result" style="margin-top:12px; font-size:0.9rem; min-height:24px;"></div>
@@ -375,7 +395,11 @@
                 <div class="pollmap-controls" id="pollmap-controls">
                     <div class="pollmap-search">
                         <svg class="pollmap-search-icon" width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                        <input type="text" class="pollmap-search-input" id="pollmap-search-input" placeholder="Search by city or state..." autocomplete="off">
+                        <input type="text" class="pollmap-search-input" id="pollmap-search-input"
+                            placeholder="Search by city or state..."
+                            autocomplete="off"
+                            aria-label="Search polling locations by city or state"
+                            role="searchbox">
                     </div>
                     <button class="btn btn-primary pollmap-locate-btn" id="btn-locate-me" title="Use my current location">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="7" stroke="currentColor" stroke-width="2"/><path d="M10 1v3M10 16v3M1 10h3M16 10h3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
@@ -454,7 +478,11 @@
                 </div>
                 <div class="faq-search" id="faq-search">
                     <svg class="faq-search-icon" width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" stroke="currentColor" stroke-width="2"/><path d="M13 13l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-                    <input type="text" class="faq-search-input" id="faq-search-input" placeholder="Search questions..." autocomplete="off">
+                    <input type="text" class="faq-search-input" id="faq-search-input"
+                        placeholder="Search questions..."
+                        autocomplete="off"
+                        aria-label="Search frequently asked questions"
+                        role="searchbox">
                 </div>
                 <div class="faq-container" id="faq-container" role="list"></div>
                 <div class="faq-no-results" id="faq-no-results">🔍 No matching questions found. Try a different search term.</div>

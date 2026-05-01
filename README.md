@@ -268,28 +268,84 @@ promptwar/
 
 ---
 
-## 🔗 Feature–Requirement Mapping
+## 🔗 Traceability Matrix
 
-| Hackathon Requirement | Implementation | Files |
-|---|---|---|
-| **Google Gemini AI Integration** | Chatbot with system instructions, domain-constrained responses | `serve.py` (`AIChatbot`), `js/api/electionData.js` |
-| **Google Maps / Location Services** | Leaflet polling map with geolocation, Google Maps deep-link | `js/app.js` (`initPollingMap`), `css/pollmap.css` |
-| **Firebase Integration** | Firebase Auth UI, Firestore logging, Analytics | `index.html` (Firebase SDK), `serve.py` (`_log_to_firebase`) |
-| **Google Cloud Storage** | GCS asset URL builder in backend | `serve.py` (`gcs_asset_url`) |
-| **Google Translate** | Full-page multilingual support | `index.html` (Translate widget) |
-| **Full-Stack Architecture** | Python REST API + SQLite + frontend | `serve.py`, `js/api/registrationData.js` |
-| **Voter Registration** | Form + backend persistence + verification | `index.html`, `serve.py`, `js/api/registrationData.js` |
-| **Civic Education** | 8-step process, timelines, quiz, FAQs | `js/api/electionData.js`, `index.html` |
-| **Interactive Map** | Polling station finder with search/filter | `js/app.js`, `css/pollmap.css` |
-| **PWA / Offline** | Service Worker, installable, cache strategies | `sw.js`, `manifest.json` |
-| **Real-Time Analytics** | Web Worker + Chart.js live charts | `js/worker.js`, `js/app.js` |
-| **Accessibility (WCAG AA)** | Focus states, ARIA, skip link, reduced motion | `css/base.css`, `index.html` |
-| **Security** | CSP, XSS sanitisation, parameterised SQL, env vars | `serve.py`, `index.html`, `css/base.css` |
-| **Unit Testing** | 51 tests: happy paths + edge cases + error states | `tests/electionData.test.js` |
-| **Performance** | Lazy map init, IntersectionObserver, particles perf guard | `js/app.js` |
-| **SEO** | Meta tags, OpenGraph, Twitter Card, sitemap, robots.txt | `index.html`, `sitemap.xml`, `robots.txt` |
+> Maps every hackathon requirement to its concrete implementation and source location.
+
+| # | Requirement | Solution | Code Location |
+|---|---|---|---|
+| 1 | **GenAI Integration** | Gemini 2.0 Flash chatbot with domain-scoped system instructions + safe fallback | `serve.py` → `AIChatbot` (L.237–414), `js/api/electionData.js` → `_callGeminiAPI` |
+| 2 | **Google Maps / Location** | Leaflet.js polling map with geolocation API, search, and Google Maps deep-links | `js/app.js` → `initPollingMap()`, `css/pollmap.css` |
+| 3 | **Firebase Integration** | Firebase Firestore session event logging + Analytics | `index.html` (Firebase SDK, L.35–70), `serve.py` → `_log_to_firebase()` |
+| 4 | **Google Cloud Storage** | GCS URL builder for production asset hosting | `serve.py` → `gcs_asset_url()` (L.86–100) |
+| 5 | **Google Translate** | Full-page multilingual UI via Translate Widget | `index.html` (L.74–94), `css/premium.css` (translate widget styles) |
+| 6 | **Full-Stack Architecture** | Python HTTP server + SQLite persistence + REST API | `serve.py` → `APIHandler`, `DataManager`; `js/api/registrationData.js` |
+| 7 | **Voter Registration** | Form validation, server-side persistence, duplicate detection, email verification | `index.html` (L.292–365), `serve.py` → `_handle_post_voter()`, `registrationData.js` |
+| 8 | **Civic Education Content** | 8-step election process, dual timeline, 10-question quiz, 8-entry FAQ | `js/api/electionData.js` (steps, quiz, timeline, FAQ data) |
+| 9 | **Interactive Map** | Polling station finder with city/state search, geolocation, and filter | `js/app.js` → `initPollingMap()` |
+| 10 | **PWA / Offline Support** | Service Worker (network-first API, cache-first assets), installable manifest | `sw.js`, `manifest.json` |
+| 11 | **Real-Time Analytics** | Web Worker streams mock poll data to Chart.js every 2 seconds | `js/worker.js`, `js/app.js` → `initAnalytics()` |
+| 12 | **Accessibility (WCAG AA)** | Focus trapping, ARIA live regions, skip link, `prefers-reduced-motion` | `css/base.css`, `index.html`, `js/app.js` → `openCandidateModal()` |
+| 13 | **Security** | CSP, XSS strip, SQL parameterisation, env-var keys, rate limiting (60 req/min) | `serve.py`, `index.html` (CSP meta), `js/api/electionData.js` |
+| 14 | **Unit Testing** | 100+ tests: happy paths, null/undefined guards, boundary, concurrency, XSS | `tests/electionData.test.js`, `tests/registrationData.test.js` |
+| 15 | **Performance** | Lazy map init, IntersectionObserver reveals, particle performance guard | `js/app.js` → `initScrollReveal()`, `initParticles()` |
+| 16 | **SEO** | Title, meta description, OG tags, Twitter Card, JSON-LD, sitemap, robots.txt | `index.html` (L.1–94), `sitemap.xml`, `robots.txt` |
+| 17 | **Rate Limiting** | Sliding-window per-IP limiter (60 req/60 s) with HTTP 429 + Retry-After | `serve.py` → `APIHandler._is_rate_limited()` |
+| 18 | **Input Sanitisation** | HTML strip + length cap on all API inputs (client & server-side) | `serve.py` → `sanitise_html()`, `js/api/electionData.js` → `chat()` |
 
 ---
+
+## 🏗️ Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         USER BROWSER                                │
+│                                                                     │
+│  index.html ──► index.css (7 CSS modules)                          │
+│       │                                                             │
+│       ├── js/api/electionData.js   (ElectionAPI IIFE)              │
+│       ├── js/api/registrationData.js (RegistrationAPI IIFE)        │
+│       ├── js/app.js                (Main controller, safeInit)     │
+│       └── js/worker.js             (Web Worker analytics stream)   │
+│                                                                     │
+│  PWA: sw.js (Service Worker) ──► cache-first / network-first       │
+└──────────────────┬──────────────────────────────────────────────────┘
+                   │ HTTP (localhost:8080)
+                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│               serve.py  (Python ThreadedHTTPServer)                 │
+│                                                                     │
+│  APIHandler                                                         │
+│   ├── GET  /api/voters    ──► DataManager.get_all_voters()         │
+│   ├── POST /api/voters    ──► DataManager.insert_voter()           │
+│   ├── DEL  /api/voters/:id ──► DataManager.delete_voter()         │
+│   ├── POST /api/chat      ──► AIChatbot.chat()                     │
+│   └── GET  /api/health    ──► version + DB status                  │
+│                                                                     │
+│  DataManager ──────────────────────────────────────────────────────┤
+│   └── SQLite (elected.db)                                           │
+│                                                                     │
+│  AIChatbot ────────────────────────────────────────────────────────┤
+│   ├── [Key set]   ──► HTTPS ──► Google Gemini 2.0 Flash API        │
+│   └── [No key]    ──► local keyword knowledge base (offline)       │
+└──────────────────┬──────────────────────────────────────────────────┘
+                   │ HTTPS calls
+                   ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      GOOGLE SERVICES                                │
+│                                                                     │
+│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐ │
+│  │  Gemini 2.0 Flash │  │ Firebase (Firestore│  │  Google Cloud    │ │
+│  │  (AI Chatbot)     │  │ + Analytics)      │  │  Storage (Assets)│ │
+│  └──────────────────┘  └──────────────────┘  └──────────────────┘ │
+│  ┌──────────────────┐  ┌──────────────────┐                        │
+│  │  Google Translate │  │  CartoDB / OSM   │                        │
+│  │  (i18n Widget)    │  │  (Leaflet Tiles) │                        │
+│  └──────────────────┘  └──────────────────┘                        │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+
 
 ## 🔐 Security
 

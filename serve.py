@@ -61,6 +61,9 @@ EMAIL_REGEX    = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 MAX_FIELD_LEN  = 200
 MAX_BODY_BYTES = 8192
 STRIP_HTML_RE  = re.compile(r'<[^>]+>')      # For XSS sanitisation
+SERVER_VERSION = '2.3.0'                      # Semantic version — bump on breaking changes
+RATE_LIMIT_MAX = 60                           # Max requests per window per IP
+RATE_LIMIT_WINDOW = 60                        # Window duration in seconds
 VALID_PARTY_VALUES = frozenset({
     'Unaffiliated', 'Democratic Party', 'Republican Party',
     'Libertarian Party', 'Green Party', 'Other'
@@ -120,7 +123,7 @@ class DataManager:
         self.db_file = db_file
         self._init_db()
 
-    def _connect(self):
+    def _connect(self) -> sqlite3.Connection:
         """
         Open a new SQLite connection with Row factory for dict-like access.
 
@@ -331,8 +334,21 @@ class AIChatbot:
             text = body['candidates'][0]['content']['parts'][0]['text'].strip()
             return {'success': True, 'response': text, 'source': 'gemini'}
 
-        except Exception as exc:
-            logger.warning('Gemini API error: %s — falling back to local KB.', exc)
+        except urllib.error.HTTPError as exc:
+            logger.warning(
+                'Gemini HTTP error %s: %s — falling back to local KB.',
+                exc.code, exc.reason
+            )
+            return self._local_fallback(clean_msg)
+        except urllib.error.URLError as exc:
+            logger.warning(
+                'Gemini network error: %s — falling back to local KB.', exc.reason
+            )
+            return self._local_fallback(clean_msg)
+        except (KeyError, IndexError, json.JSONDecodeError) as exc:
+            logger.warning(
+                'Gemini response parse error: %s — falling back to local KB.', exc
+            )
             return self._local_fallback(clean_msg)
 
     def _local_fallback(self, message: str) -> dict:
@@ -467,6 +483,33 @@ class APIHandler(SimpleHTTPRequestHandler):
     _db  = DataManager()
     _ai  = AIChatbot()
 
+    # ── In-memory rate limiter (per-IP, rolling window) ──
+    import threading as _threading
+    import time as _time
+    _rate_lock    = _threading.Lock()
+    _rate_store: dict = {}   # { ip: [timestamp, ...] }
+
+    def _is_rate_limited(self) -> bool:
+        """
+        Check whether the requesting IP has exceeded the rate limit.
+
+        Uses a sliding-window counter: each IP is allowed up to
+        RATE_LIMIT_MAX requests within any RATE_LIMIT_WINDOW-second period.
+
+        Returns:
+            bool: True if the IP is over-limit and should be blocked.
+        """
+        ip  = self.client_address[0]
+        now = self._time.monotonic()
+        cutoff = now - RATE_LIMIT_WINDOW
+        with self._rate_lock:
+            timestamps = self._rate_store.get(ip, [])
+            # Prune expired timestamps
+            timestamps = [t for t in timestamps if t > cutoff]
+            timestamps.append(now)
+            self._rate_store[ip] = timestamps
+            return len(timestamps) > RATE_LIMIT_MAX
+
     def log_message(self, fmt, *args) -> None:
         """Redirect access logs to our structured logger."""
         logger.info('%s - %s', self.address_string(), fmt % args)
@@ -474,6 +517,7 @@ class APIHandler(SimpleHTTPRequestHandler):
     def send_json(self, data: dict, status: int = 200) -> None:
         """
         Serialise data as UTF-8 JSON and send a complete HTTP response.
+        Includes the full set of defensive HTTP security headers.
 
         Args:
             data   (dict): Response payload to serialise.
@@ -483,12 +527,29 @@ class APIHandler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
+        # Security headers
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        self.send_header('Permissions-Policy', 'geolocation=(), microphone=(), camera=()')
+        self.send_header('Cache-Control', 'no-store')
+        # CORS
         self.send_header('Access-Control-Allow-Origin', ALLOWED_ORIGIN)
         self.send_header('Vary', 'Origin')
         self.end_headers()
         self.wfile.write(body)
+
+    def end_headers(self) -> None:
+        """
+        Append defensive security headers to every HTTP response
+        (including static files served by SimpleHTTPRequestHandler).
+        """
+        self.send_header('X-Content-Type-Options', 'nosniff')
+        self.send_header('X-Frame-Options', 'DENY')
+        self.send_header('X-XSS-Protection', '1; mode=block')
+        self.send_header('Referrer-Policy', 'strict-origin-when-cross-origin')
+        super().end_headers()
 
     def do_OPTIONS(self) -> None:
         """Handle CORS preflight requests from the browser."""
@@ -511,6 +572,13 @@ class APIHandler(SimpleHTTPRequestHandler):
 
     def do_POST(self) -> None:
         """Route POST requests to voter registration or AI chat handlers."""
+        if self._is_rate_limited():
+            self.send_json(
+                {'success': False, 'error': 'Rate limit exceeded. Try again later.'},
+                status=429
+            )
+            self.send_header('Retry-After', str(RATE_LIMIT_WINDOW))
+            return
         path = urlparse(self.path).path
         if path == '/api/voters':
             self._handle_post_voter()
@@ -543,7 +611,7 @@ class APIHandler(SimpleHTTPRequestHandler):
             'ai_available': self._ai.available,
             'gcs_configured': bool(GCS_BUCKET),
             'firebase_configured': bool(FIREBASE_PID),
-            'version': '2.2.0'
+            'version': SERVER_VERSION
         })
 
     def _handle_get_voters(self) -> None:
