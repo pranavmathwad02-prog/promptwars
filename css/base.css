@@ -7,7 +7,7 @@
     --bg-glass: rgba(255,255,255,0.06);
     --text-primary: #f0f0ff;
     --text-secondary: #a0a0c0;
-    --text-muted: #6a6a8e;
+    --text-muted: #8080a8;   /* 5.2:1 contrast on #0a0a1a — WCAG AA ✓ */
     --accent-1: #6366f1;
     --accent-2: #8b5cf6;
     --accent-3: #a855f7;
@@ -104,10 +104,6 @@ a:focus-visible {
     background: var(--bg-glass);
 }
 
-/* ── WCAG AA CONTRAST — ensure text meets 4.5:1 ratio on dark bg ── */
-/* --text-secondary (#a0a0c0 on #0a0a1a) = 7.1:1 ✓ */
-/* --text-muted (#6a6a8e on #0a0a1a) ≈ 3.8:1 — boost for AA */
---text-muted: #8080a8;   /* Bumped from #6a6a8e — now 5.2:1 ✓ */
 
 /* ── REDUCED MOTION — respect user OS preference ── */
 @media (prefers-reduced-motion: reduce) {
