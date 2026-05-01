@@ -345,7 +345,46 @@ promptwar/
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
+### Data Flow (Mermaid)
 
+```mermaid
+flowchart TD
+    U([👤 User / Browser]) -->|HTTP GET| SH[serve.py\nSimpleHTTPRequestHandler]
+    U -->|User Input| FE[Frontend JS\napp.js]
+
+    FE -->|ElectionAPI.chat| CE{Backend\nAvailable?}
+    CE -->|Yes — POST /api/chat| API[serve.py\nAPIHandler]
+    CE -->|No — Offline Mode| LKB[Local Knowledge Base\nelectionData.js]
+
+    API --> RL{Rate Limit\nOK?}
+    RL -->|429 Too Many Requests| FE
+    RL -->|Pass| AI[AIChatbot.chat\nserve.py]
+
+    AI --> KEY{GEMINI_API_KEY\nSet?}
+    KEY -->|Yes| GEM[🤖 Gemini 2.0 Flash\ngenerativelanguage.googleapis.com]
+    KEY -->|No| LKB
+
+    GEM -->|AI Response| AI
+    AI -->|JSON Response| FE
+    LKB -->|Local Response| FE
+
+    FE -->|registerVoter| REG[serve.py\nDataManager]
+    REG -->|SQL INSERT| DB[(SQLite\nelected.db)]
+    DB -->|Voter Data| REG
+    REG -->|JSON| FE
+
+    FE -->|Session Event| FB[🔥 Firebase Firestore\n+ Analytics]
+    FE -->|Map Tiles| MAP[🗺️ CartoDB / OSM\nLeaflet.js]
+    FE -->|i18n| GT[🌍 Google Translate\nWidget]
+
+    SH -->|Static Files| FE
+
+    style U fill:#6366f1,color:#fff
+    style GEM fill:#10b981,color:#fff
+    style FB fill:#f97316,color:#fff
+    style DB fill:#a855f7,color:#fff
+    style LKB fill:#64748b,color:#fff
+```
 
 ## 🔐 Security
 

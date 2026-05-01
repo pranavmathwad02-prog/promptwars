@@ -1,0 +1,45 @@
+{
+  "env": {
+    "browser": true,
+    "es2022": true,
+    "jest": true
+  },
+  "parserOptions": {
+    "ecmaVersion": 2022,
+    "sourceType": "script"
+  },
+  "rules": {
+    "strict": ["error", "function"],
+    "no-var": "error",
+    "prefer-const": "error",
+    "eqeqeq": ["error", "always"],
+    "no-console": ["warn", { "allow": ["warn", "error"] }],
+    "no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    "curly": "error",
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error",
+    "no-alert": "warn",
+    "default-case": "error",
+    "no-fallthrough": "error",
+    "no-duplicate-case": "error",
+    "no-empty": "error",
+    "no-unreachable": "error",
+    "valid-typeof": "error",
+    "no-undef": "error",
+    "no-global-assign": "error",
+    "consistent-return": "warn",
+    "max-len": ["warn", { "code": 120, "ignoreUrls": true, "ignoreStrings": true }],
+    "max-depth": ["warn", 4],
+    "complexity": ["warn", 15]
+  },
+  "globals": {
+    "ElectionAPI": "readonly",
+    "RegistrationAPI": "readonly",
+    "Chart": "readonly",
+    "L": "readonly",
+    "VanillaTilt": "readonly",
+    "firebase": "readonly"
+  }
+}

@@ -1,6 +1,6 @@
 {
   "name": "elected-election-education",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "ElectEd — AI-powered interactive U.S. election process education platform",
   "main": "js/app.js",
   "homepage": "https://pranavmathwad02-prog.github.io/promptwars/",
@@ -9,11 +9,14 @@
     "url": "https://github.com/pranavmathwad02-prog/promptwars"
   },
   "scripts": {
-    "test":     "jest --coverage --verbose --forceExit",
-    "test:watch": "jest --watch --forceExit",
-    "test:ci":  "jest --coverage --ci --forceExit --detectOpenHandles --reporters=default",
-    "serve":    "python serve.py",
-    "lint":     "echo 'No linter configured — add eslint for production'"
+    "test":             "jest --coverage --verbose --forceExit",
+    "test:unit":        "jest --testPathPattern='(electionData|registrationData)\.test\.js' --coverage --verbose --forceExit",
+    "test:integration": "jest --testPathPattern='integration\.test\.js' --verbose --forceExit",
+    "test:all":         "jest --coverage --verbose --forceExit --testPathPattern='tests/'",
+    "test:watch":       "jest --watch --forceExit",
+    "test:ci":          "jest --coverage --ci --forceExit --detectOpenHandles --reporters=default",
+    "serve":            "python serve.py",
+    "lint":             "echo 'No linter configured — add eslint for production'"
   },
   "jest": {
     "testEnvironment": "node",
@@ -25,7 +28,7 @@
     ],
     "coverageThreshold": {
       "global": {
-        "branches":   80,
+        "branches":   85,
         "functions":  90,
         "lines":      90,
         "statements": 90

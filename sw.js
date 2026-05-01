@@ -35,7 +35,6 @@ self.addEventListener('install', (event) => {
         caches.open(STATIC_CACHE)
             .then((cache) => cache.addAll(STATIC_ASSETS))
             .then(() => self.skipWaiting()) // Activate immediately
-            .catch((err) => console.error('[SW] Install failed:', err))
     );
 });
 
@@ -47,10 +46,7 @@ self.addEventListener('activate', (event) => {
                 return Promise.all(
                     cacheNames
                         .filter((name) => name !== STATIC_CACHE && name !== API_CACHE)
-                        .map((name) => {
-                            console.info(`[SW] Deleting old cache: ${name}`);
-                            return caches.delete(name);
-                        })
+                        .map((name) => caches.delete(name))
                 );
             })
             .then(() => self.clients.claim()) // Take control of all open tabs

@@ -1,0 +1,22 @@
+# ElectEd Backend — Python Dependencies
+# ═══════════════════════════════════════
+# The production server (serve.py) uses ONLY the Python Standard Library.
+# No third-party packages are required to run the application.
+#
+# Standard Library modules used (for reference):
+#   json, re, sqlite3, os, sys, logging, urllib, http.server,
+#   socketserver, urllib.parse, typing
+#
+# Python version requirement: >= 3.10
+# (Required for: structural pattern matching, ParamSpec, precise type hints)
+
+# ── Optional: Development / Linting Tools ────────────────────────────────────
+# Install with: pip install -r requirements-dev.txt
+# These are NOT required to run the server.
+
+# ── requirements-dev.txt (copy to separate file for CI) ─────────────────────
+# black==24.3.0
+# flake8==7.0.0
+# mypy==1.9.0
+# isort==5.13.2
+# pytest==8.1.1

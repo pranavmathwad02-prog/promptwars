@@ -35,9 +35,11 @@ import os
 import sys
 import logging
 import urllib.request
+import urllib.error
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 from urllib.parse import urlparse
+from typing import Any, Dict, List, Optional, Tuple
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -68,6 +70,40 @@ VALID_PARTY_VALUES = frozenset({
     'Unaffiliated', 'Democratic Party', 'Republican Party',
     'Libertarian Party', 'Green Party', 'Other'
 })
+
+# ── Environment Validation ────────────────────────────────────────────────────
+
+def _validate_environment() -> None:
+    """
+    Validate critical environment configuration at startup.
+
+    Emits structured warnings for each missing optional service key so
+    that operators can diagnose degraded-mode behaviour immediately on
+    startup without hunting through silent runtime failures.
+
+    Returns:
+        None
+    """
+    optional_checks: List[Tuple[str, str]] = [
+        (GEMINI_API_KEY, 'GEMINI_API_KEY not set — chatbot will use local fallback.'),
+        (FIREBASE_PID,   'FIREBASE_PROJECT_ID not set — session analytics disabled.'),
+        (GCS_BUCKET,     'GCS_BUCKET_NAME not set — assets served from local filesystem.'),
+    ]
+    degraded = False
+    for value, msg in optional_checks:
+        if not value:
+            logger.warning('[ENV] %s', msg)
+            degraded = True
+    if degraded:
+        logger.info(
+            '[ENV] Server starting in degraded mode. '
+            'Set missing keys via environment variables to enable all features.'
+        )
+    else:
+        logger.info('[ENV] All optional service keys present. Full feature mode.')
+
+
+_validate_environment()
 
 
 # ── Utility Functions ─────────────────────────────────────────────────────────
@@ -164,7 +200,7 @@ class DataManager:
         finally:
             conn.close()
 
-    def get_all_voters(self) -> list:
+    def get_all_voters(self) -> List[Dict[str, Any]]:
         """
         Retrieve all voter records ordered by registration date descending.
 
@@ -181,7 +217,7 @@ class DataManager:
         finally:
             conn.close()
 
-    def insert_voter(self, voter: dict) -> int:
+    def insert_voter(self, voter: Dict[str, Any]) -> int:
         """
         Insert a validated voter record into the database.
 
@@ -276,7 +312,7 @@ class AIChatbot:
         if not self.available:
             logger.warning('Gemini API key not set — chatbot using local fallback.')
 
-    def chat(self, message: str) -> dict:
+    def chat(self, message: str) -> Dict[str, Any]:
         """
         Send a sanitised user message to Gemini and return the AI response.
 
@@ -351,7 +387,7 @@ class AIChatbot:
             )
             return self._local_fallback(clean_msg)
 
-    def _local_fallback(self, message: str) -> dict:
+    def _local_fallback(self, message: str) -> Dict[str, Any]:
         """
         Match user message against a local election knowledge base.
 
@@ -527,6 +563,22 @@ class APIHandler(SimpleHTTPRequestHandler):
         self.send_response(status)
         self.send_header('Content-Type', 'application/json; charset=utf-8')
         self.send_header('Content-Length', str(len(body)))
+        # Security headers — defence-in-depth
+        self.send_header('Content-Security-Policy',
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' https://unpkg.com "
+            "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net "
+            "https://www.gstatic.com https://www.googletagmanager.com "
+            "https://translate.google.com https://translate.googleapis.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com "
+            "https://translate.googleapis.com https://unpkg.com; "
+            "font-src https://fonts.gstatic.com; "
+            "img-src 'self' data: https:; "
+            "connect-src 'self' https://generativelanguage.googleapis.com "
+            "https://*.googleapis.com https://*.google-analytics.com "
+            "https://*.openstreetmap.org https://*.cartocdn.com; "
+            "frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
+        )
         # Security headers
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('X-Frame-Options', 'DENY')

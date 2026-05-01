@@ -37,8 +37,6 @@
     <script src="https://www.gstatic.com/firebasejs/10.9.0/firebase-analytics-compat.js"></script>
     <script>
       // Firebase is optional — only initialise if a real project config is set.
-      // Replace these placeholder values with your actual Firebase project config.
-      // Get yours at: https://console.firebase.google.com/
       const firebaseConfig = {
         apiKey: "REPLACE_WITH_YOUR_FIREBASE_API_KEY",
         authDomain: "REPLACE_WITH_YOUR_PROJECT.firebaseapp.com",
@@ -55,18 +53,12 @@
           firebase.initializeApp(firebaseConfig);
           firebase.analytics();
           window.db = firebase.firestore();
-          console.info('[Firebase] Initialised successfully.');
-        } catch (e) {
-          console.warn('[Firebase] Init failed — running without Firebase:', e.message);
+        } catch (_e) {
+          // Firebase init failed silently — app works without it
         }
-      } else if (!_fbKeyIsReal) {
-        console.info('[Firebase] Placeholder config detected — skipping init. Add real keys to enable.');
       }
-
-      function initMap() {
-        console.info('[GoogleMaps] API loaded.');
-        window.googleMapReady = true;
-      }
+      // Google Maps fallback callback — prevents uncaught reference errors
+      function initMap() { window.googleMapReady = true; }
     </script>
     <!-- Google Maps removed — both maps use Leaflet (no API key required) -->
 
@@ -93,13 +85,16 @@
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-    <!-- Gemini API Key: set in config.js (gitignored). Default is null (uses local fallback). -->
-    <script src="config.js" onerror="console.info('[ElectEd] config.js not found — chatbot using local knowledge base.')"></script>
+    <!-- Gemini API Key: set in config.js (gitignored). Uses local fallback if absent. -->
+    <script src="config.js" onerror="void 0"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 </head>
 <body>
+    <!-- Skip Navigation Link — MUST be first focusable element (WCAG 2.4.1) -->
+    <a href="#main-content" class="skip-link" id="skip-nav">Skip to main content</a>
+
     <!-- Splash / Loading Screen -->
-    <div class="splash-screen" id="splash-screen" aria-label="Loading">
+    <div class="splash-screen" id="splash-screen" role="status" aria-label="Loading ElectEd">
         <div class="splash-logo">
             <svg width="56" height="56" viewBox="0 0 32 32" fill="none" aria-hidden="true"><rect x="2" y="4" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2"/><path d="M10 16l4 4 8-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <span>ElectEd</span>
@@ -115,7 +110,8 @@
     <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
     <!-- Candidate Detail Modal -->
-    <div class="modal-overlay" id="candidate-modal" role="dialog" aria-modal="true" aria-labelledby="modal-candidate-name">
+    <div class="modal-overlay" id="candidate-modal" role="dialog" aria-modal="true"
+         aria-labelledby="modal-candidate-name" aria-hidden="true">
         <div class="modal-card" id="modal-card">
             <div class="modal-header">
                 <div>
@@ -131,7 +127,6 @@
         </div>
     </div>
 
-    <a href="#main-content" class="skip-link" id="skip-nav">Skip to main content</a>
 
     <div class="ambient-bg" aria-hidden="true">
         <div class="ambient-orb orb-1"></div>
