@@ -4,8 +4,8 @@
  */
 'use strict';
 
-// Global Google Maps callback to prevent console errors
-window.initMap = () => console.info("Google Maps Ready");
+// Global Google Maps callback — prevents uncaught reference errors (silent)
+window.initMap = () => {};
 
 document.addEventListener('DOMContentLoaded', () => {
     // ── SAFETY: FORCE DISMISS SPLASH ──
@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
         safeInit(() => initCursor(), "Cursor");
         safeInit(() => initPWA(), "PWA");
         safeInit(() => initAnalytics(), "Analytics");
+        safeInit(() => initDynamicTitle(), "DynamicTitle");
 
         if (window.VanillaTilt) {
             VanillaTilt.init(document.querySelectorAll(".overview-card, .candidate-card, .reg-stat-card"), {
@@ -171,8 +172,18 @@ async function initSteps() {
     const progressFill = document.getElementById('progress-fill');
     const progressLabel = document.getElementById('progress-label');
 
+    // Show skeleton placeholders while loading
+    if (content) {
+        content.innerHTML = Array.from({ length: 3 }, () =>
+            '<div class="skeleton skeleton-step" aria-hidden="true"></div>'
+        ).join('');
+    }
+
     const res = await ElectionAPI.getSteps();
-    if (!res.success) return;
+    if (!res.success) {
+        if (content) content.innerHTML = '<div class="api-error-state"><span class="error-icon">⚠️</span><div class="error-title">Steps unavailable</div><p>Please reload the page.</p></div>';
+        return;
+    }
     const steps = res.data;
     let currentStep = 0;
 
@@ -379,8 +390,18 @@ async function initQuiz() {
  */
 async function initFAQ() {
     const container = document.getElementById('faq-container');
+    // Show skeleton placeholders while FAQs load
+    if (container) {
+        container.innerHTML = Array.from({ length: 4 }, () =>
+            '<div class="skeleton skeleton-faq" aria-hidden="true"></div>'
+        ).join('');
+    }
+
     const res = await ElectionAPI.getFAQs();
-    if (!res.success) return;
+    if (!res.success) {
+        if (container) container.innerHTML = '<div class="api-error-state"><span class="error-icon">⚠️</span><div class="error-title">FAQs unavailable</div></div>';
+        return;
+    }
 
     res.data.forEach((faq, i) => {
         const item = document.createElement('div');
@@ -568,9 +589,17 @@ async function initCandidates() {
     if (!grid) return;
 
     const renderCandidates = async (position = 'all') => {
+        // Show skeleton placeholders while candidates load
+        grid.innerHTML = Array.from({ length: 4 }, () =>
+            '<div class="skeleton skeleton-candidate" aria-hidden="true"></div>'
+        ).join('');
+
         const filter = position === 'all' ? {} : { position };
         const res = await RegistrationAPI.getCandidates(filter);
-        if (!res.success) return;
+        if (!res.success) {
+            grid.innerHTML = '<div class="api-error-state" style="grid-column:1/-1"><span class="error-icon">⚠️</span><div class="error-title">Candidates unavailable</div></div>';
+            return;
+        }
 
         grid.style.opacity = '0';
         grid.style.transform = 'translateY(12px)';
@@ -1664,10 +1693,9 @@ function initCursor() {
 function initPWA() {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./sw.js').then(registration => {
-                console.info('PWA ServiceWorker registered successfully with scope: ', registration.scope);
-            }, err => {
-                console.warn('PWA ServiceWorker registration failed: ', err);
+            // Register silently — no console output in production
+            navigator.serviceWorker.register('./sw.js').catch(() => {
+                // Service Worker failed to register; app continues in online-only mode
             });
         });
     }
@@ -1737,6 +1765,65 @@ function initAnalytics() {
             }
         };
     } else {
-        console.warn("Web Workers not supported. Live analytics disabled.");
+        // Web Workers not supported — analytics remain static (no-op, no console output)
     }
 }
+
+// ══════════════════════════════════════
+// DYNAMIC TITLE MODULE
+// ══════════════════════════════════════
+/**
+ * Updates document.title when a major section scrolls into view.
+ * Helps screen-reader users know exactly where they are on the page.
+ * Uses IntersectionObserver for zero layout-thrash performance.
+ *
+ * @returns {void}
+ */
+function initDynamicTitle() {
+    /** @type {string} The base application name used in all titles */
+    const BASE_TITLE = 'ElectEd';
+
+    /**
+     * Maps section element IDs to human-readable page title suffixes.
+     * @type {Object.<string, string>}
+     */
+    const SECTION_TITLES = {
+        'hero':         'Home',
+        'overview':     'How Elections Work',
+        'steps':        'Election Steps',
+        'timeline':     'Election Timeline',
+        'quiz':         'Civic Quiz',
+        'chatbot':      'Ask ElectBot',
+        'candidates':   'Candidates',
+        'registration': 'Voter Registration',
+        'pollmap':      'Find a Polling Place',
+        'analytics':    'Live Analytics',
+        'faq':          'FAQ',
+    };
+
+    /** @type {IntersectionObserverInit} Observer options for 40% visibility threshold */
+    const observerOptions = {
+        root: null,
+        rootMargin: '0px',
+        threshold: 0.4,
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+                const sectionId = entry.target.id;
+                const label = SECTION_TITLES[sectionId];
+                if (label) {
+                    document.title = `${BASE_TITLE} | ${label}`;
+                }
+            }
+        });
+    }, observerOptions);
+
+    // Observe all mapped sections that exist in the DOM
+    Object.keys(SECTION_TITLES).forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) { observer.observe(el); }
+    });
+}
+
